@@ -1,0 +1,28 @@
+src/lib/claude/prompts.ts
+  s_3a283cd81af692::t_8c73b46e48bd66 122,124-128
+src/app/page.tsx
+  h_30a249df2d36d2 49,57,103
+README.md
+  h_30a249df2d36d2 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "8dd3dea689839fd88c4f65d0843fde76909222bf",
+  "prompts": {},
+  "humans": {
+    "h_30a249df2d36d2": {
+      "author": "TCBDIRIL <batuhan.diril@turkcell.com.tr>"
+    }
+  },
+  "sessions": {
+    "s_3a283cd81af692": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "703907c3-6c16-40e6-935c-adb251f3c153",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "TCBDIRIL <batuhan.diril@turkcell.com.tr>"
+    }
+  }
+}
