@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { anthropic, MODEL } from "@/lib/claude/client";
+import { groq, MODEL } from "@/lib/claude/client";
 import { buildHealthScorePrompt } from "@/lib/claude/prompts";
 
 export async function POST(request: Request) {
@@ -8,16 +8,17 @@ export async function POST(request: Request) {
 
     const prompt = buildHealthScorePrompt(metrics);
 
-    const message = await anthropic.messages.create({
+    const completion = await groq.chat.completions.create({
       model: MODEL,
       max_tokens: 1024,
+      response_format: { type: "json_object" },
       messages: [{ role: "user", content: prompt }],
     });
 
-    const block = message.content[0];
-    if (block.type !== "text") throw new Error("Unexpected response type from Claude");
+    const text = completion.choices[0]?.message?.content;
+    if (!text) throw new Error("Empty response from Groq");
 
-    const raw = block.text.replace(/^```json\s*|```$/g, "").trim();
+    const raw = text.replace(/^```json\s*|```$/g, "").trim();
     return NextResponse.json(JSON.parse(raw));
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

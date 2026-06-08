@@ -1,4 +1,4 @@
-import { anthropic, MODEL } from "@/lib/claude/client";
+import { groq, MODEL } from "@/lib/claude/client";
 import { buildSprintReportPrompt } from "@/lib/claude/prompts";
 import type { JiraSprint } from "@/types";
 
@@ -9,9 +9,10 @@ export async function POST(request: Request) {
 
     const prompt = buildSprintReportPrompt(sprint, metrics);
 
-    const stream = anthropic.messages.stream({
+    const stream = await groq.chat.completions.create({
       model: MODEL,
       max_tokens: 2048,
+      stream: true,
       messages: [{ role: "user", content: prompt }],
     });
 
@@ -19,13 +20,9 @@ export async function POST(request: Request) {
     const readable = new ReadableStream({
       async start(controller) {
         try {
-          for await (const event of stream) {
-            if (
-              event.type === "content_block_delta" &&
-              event.delta.type === "text_delta"
-            ) {
-              controller.enqueue(encoder.encode(event.delta.text));
-            }
+          for await (const chunk of stream) {
+            const delta = chunk.choices[0]?.delta?.content;
+            if (delta) controller.enqueue(encoder.encode(delta));
           }
         } finally {
           controller.close();
