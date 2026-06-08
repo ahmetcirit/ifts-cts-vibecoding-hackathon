@@ -185,15 +185,18 @@ export default function PlanningPage() {
                           </div>
                         )}
                       </div>
-                      {pred && (
-                        <div className="text-right shrink-0">
-                          <div className="text-xl font-bold text-blue-400">{pred.suggestedPoints}</div>
-                          <div className="text-xs text-slate-500">pts</div>
-                          <span className={clsx("text-xs px-1.5 py-0.5 rounded border mt-1 inline-block", CONFIDENCE_BADGE[pred.confidence])}>
-                            {pred.confidence}
-                          </span>
-                        </div>
-                      )}
+                      <div className="text-right shrink-0 flex flex-col gap-1 items-end min-w-[48px]">
+                        <div className="text-xl font-bold text-slate-200">{issue.storyPoints}</div>
+                        <div className="text-xs text-slate-500">SP</div>
+                        {pred && (
+                          <>
+                            <div className="text-base font-semibold text-blue-400 mt-1">{pred.suggestedPoints} AI</div>
+                            <span className={clsx("text-xs px-1.5 py-0.5 rounded border", CONFIDENCE_BADGE[pred.confidence])}>
+                              {pred.confidence}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
