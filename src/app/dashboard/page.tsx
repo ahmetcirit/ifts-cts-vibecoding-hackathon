@@ -169,12 +169,16 @@ export default function DashboardPage() {
 
   const metrics = activeSprint ? calcMetrics(activeSprint) : null;
 
-  const closedSprints = sprints.filter((s) => s.state === "closed").slice(-5);
-  const velocityChartData = closedSprints.map((s) => ({
-    name: s.name.replace("Sprint ", "S"),
-    Planlanan: s.plannedPoints,
-    Tamamlanan: s.completedPoints,
-  }));
+  // startDate'e göre en güncelden en eskiye — sadece son 5 sprint
+  const velocityChartData = sprints
+    .filter((s) => !!s.startDate)
+    .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
+    .slice(0, 5)
+    .map((s) => ({
+      name: s.name.replace("Sprint ", "S"),
+      Planlanan: s.plannedPoints,
+      Tamamlanan: s.completedPoints,
+    }));
 
   const gaugeColor = healthScore
     ? healthScore.score >= 80 ? "#10b981" : healthScore.score >= 60 ? "#f59e0b" : "#ef4444"

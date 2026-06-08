@@ -11,19 +11,11 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { fetchJiraSprints, fetchSprintIssues, mapJiraIssue } = await import("@/lib/jira/client");
+    const { fetchAllJiraSprints, fetchSprintIssues, mapJiraIssue } = await import("@/lib/jira/client");
     const boardId = Number(searchParams.get("boardId") ?? process.env.JIRA_BOARD_ID ?? "1");
 
-    // Fetch closed + active sprints in parallel
-    const [closedData, activeData] = await Promise.all([
-      fetchJiraSprints(boardId, "closed", 5),
-      fetchJiraSprints(boardId, "active", 1),
-    ]);
-
-    const rawSprints: Record<string, unknown>[] = [
-      ...(closedData.values ?? []),
-      ...(activeData.values ?? []),
-    ];
+    // Board'daki TÜM sprintleri pagination ile getir (state filtresiz)
+    const rawSprints = await fetchAllJiraSprints(boardId);
 
     // Fetch issues for each sprint to calculate velocity
     const sprints: JiraSprint[] = await Promise.all(

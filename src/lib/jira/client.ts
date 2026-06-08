@@ -141,6 +141,27 @@ export async function fetchJiraSprints(boardId: number, state: string, maxResult
   );
 }
 
+// Tüm sayfaları gezerek board'daki TÜM sprintleri getirir (state filtresiz).
+// Jira /sprint endpoint'i ID artan sırada döner; pagination şart, aksi hâlde en yeni sprintler kaçar.
+export async function fetchAllJiraSprints(boardId: number): Promise<Record<string, unknown>[]> {
+  const PAGE = 50;
+  const all: Record<string, unknown>[] = [];
+  let startAt = 0;
+
+  while (true) {
+    const data = await jiraFetch(
+      `/rest/agile/1.0/board/${boardId}/sprint?startAt=${startAt}&maxResults=${PAGE}`
+    );
+    const values = (data.values ?? []) as Record<string, unknown>[];
+    all.push(...values);
+    if (data.isLast === true || values.length < PAGE) break;
+    startAt += PAGE;
+    if (startAt > 1000) break; // güvenlik tavanı
+  }
+
+  return all;
+}
+
 export async function fetchSprintIssues(sprintId: number, maxResults = 100) {
   return jiraFetch(
     `/rest/agile/1.0/sprint/${sprintId}/issue?maxResults=${maxResults}&fields=${ISSUE_FIELDS}`
