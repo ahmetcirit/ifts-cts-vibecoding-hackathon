@@ -1,8 +1,8 @@
-import Groq from "groq-sdk";
+import Anthropic from "@anthropic-ai/sdk";
 
-export const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
+export const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-export const MODEL = "llama-3.3-70b-versatile";
+export const MODEL = "claude-sonnet-4-6";
 export const MAX_TOKENS = 4096;
