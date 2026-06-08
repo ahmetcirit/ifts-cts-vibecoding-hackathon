@@ -54,13 +54,13 @@ export default function Home() {
                 <Zap className="w-5 h-5 text-white" />
               </div>
               <h1 className="text-5xl font-bold bg-gradient-to-r from-slate-100 via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                CTS VibeCrafters Agile
+                CTS VibeCrafters Agile Manager
               </h1>
             </div>
 
             <p className="text-slate-400 text-lg max-w-2xl mx-auto leading-relaxed">
               Sprint planlama ve raporlama iş yükünü yapay zeka ile otomatikleştir.
-              Takımın tüm enerjisini kod yazmaya ve değer üretmeye odakla.
+              Takımın tüm enerjisini kod yazmaya ve değer üretmeye odaklar.
             </p>
           </div>
 
