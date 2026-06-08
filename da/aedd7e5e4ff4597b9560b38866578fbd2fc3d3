@@ -1,0 +1,30 @@
+src/app/api/jira/sprints/route.ts
+  s_b864980624d777::t_c39161935a3e5e 14,17-18
+.claude/settings.local.json
+  s_b864980624d777::t_acbd4960153c31 1-3,8-10
+  s_b864980624d777::t_ef407315e3445f 4
+  s_b864980624d777::t_c3242d3fef68f2 6-7
+  s_b864980624d777::t_e5531250878219 5
+src/app/dashboard/page.tsx
+  s_b864980624d777::t_35cdad48e1442d 173,175,177-181
+  s_b864980624d777::t_f85a6524ec6492 172,176
+  s_b864980624d777::t_9c6853d20d387a 174
+src/lib/jira/client.ts
+  s_b864980624d777::t_e57a44412f3a0f 144-164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "daaedd7e5e4ff4597b9560b38866578fbd2fc3d3",
+  "prompts": {},
+  "sessions": {
+    "s_b864980624d777": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d2f30f3b-e3a1-47cd-80ba-67f9d5b43c9e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "TCACIRIT <ahmet.cirit@turkcell.com.tr>"
+    }
+  }
+}
