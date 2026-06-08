@@ -1,0 +1,27 @@
+src/app/planning/page.tsx
+  s_3a283cd81af692::t_8f5343b56b3dd2 188-199
+src/lib/jira/client.ts
+  s_3a283cd81af692::t_f5f3b3f66a2eee 61,63-68
+  s_3a283cd81af692::t_5909c4167bd153 115-121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "7adbb05c75620f46ccc5dbe149b6cc5314c65c0b",
+  "prompts": {},
+  "humans": {
+    "h_30a249df2d36d2": {
+      "author": "TCBDIRIL <batuhan.diril@turkcell.com.tr>"
+    }
+  },
+  "sessions": {
+    "s_3a283cd81af692": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "703907c3-6c16-40e6-935c-adb251f3c153",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "TCBDIRIL <batuhan.diril@turkcell.com.tr>"
+    }
+  }
+}
