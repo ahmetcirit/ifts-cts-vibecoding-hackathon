@@ -1,0 +1,27 @@
+src/app/api/ai/predict-size/route.ts
+  s_b864980624d777::t_738c6f60d22159 2,13,16,20-21,23
+src/app/api/ai/sprint-report/route.ts
+  s_b864980624d777::t_b335a1a47dfd8b 1,12,15,23-25
+src/lib/claude/client.ts
+  s_b864980624d777::t_137e86a2886918 1,3-4,7
+src/app/api/ai/health-score/route.ts
+  s_b864980624d777::t_75aaa763493cf1 2,11,14,18-19,21
+src/app/api/ai/decompose/route.ts
+  s_b864980624d777::t_2b3b695a9ea468 2,13,16,20-21,23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "c893fe9fe664d249b881aa157d2c16553d4d197f",
+  "prompts": {},
+  "sessions": {
+    "s_b864980624d777": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d2f30f3b-e3a1-47cd-80ba-67f9d5b43c9e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "TCACIRIT <ahmet.cirit@turkcell.com.tr>"
+    }
+  }
+}
