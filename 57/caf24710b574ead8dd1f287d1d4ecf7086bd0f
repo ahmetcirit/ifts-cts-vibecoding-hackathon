@@ -1,0 +1,27 @@
+CLAUDE.md
+  s_335e3b07efa769::t_bbee795dba158a 91,93-99
+src/app/api/jira/team/route.ts
+  s_335e3b07efa769::t_23d7fbf636715c 4-26
+docs/ARCHITECTURE.md
+  s_335e3b07efa769::t_45d66537c26147 237
+  s_335e3b07efa769::t_2b410599f48021 113
+src/lib/jira/client.ts
+  s_335e3b07efa769::t_fbc7730919fbe6 1
+  s_335e3b07efa769::t_8a9b5cf973fe7c 142-264
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "57caf24710b574ead8dd1f287d1d4ecf7086bd0f",
+  "prompts": {},
+  "sessions": {
+    "s_335e3b07efa769": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fffb4f1e-071d-4d0c-8637-260b23246d3a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "tcenakilcioglu <nakilcioglu.emre@turkcell.com.tr>"
+    }
+  }
+}
