@@ -1,0 +1,79 @@
+src/app/page.tsx
+  s_335e3b07efa769::t_0dbc3d1cc315bb 1-107
+src/app/api/ai/health-score/route.ts
+  s_335e3b07efa769::t_3141b7b38f13f5 1-25
+src/app/api/ai/decompose/route.ts
+  s_335e3b07efa769::t_ce313d4ef83598 1-27
+src/app/dashboard/page.tsx
+  s_335e3b07efa769::t_7796fb7ea87a63 49-75
+  s_335e3b07efa769::t_ea7dac0bb22fa1 179-181
+  s_335e3b07efa769::t_21dcb6a2dfd274 1-48,76-178,182-289,291-295,297-300,304-306,308-312,314-390
+  s_335e3b07efa769::t_22203acc61a48e 290,296,301-303,307,313
+src/lib/claude/client.ts
+  s_335e3b07efa769::t_4c54c54ab43062 1-8
+.env.local.example
+  s_335e3b07efa769::t_6a675e6462d51e 1-4
+  s_335e3b07efa769::t_6f75969a7dd6a2 5-9
+postcss.config.mjs
+  s_335e3b07efa769::t_349f55a1d21b64 1-9
+src/app/api/jira/team/route.ts
+  s_335e3b07efa769::t_27037aad3af14c 1-6
+next.config.ts
+  s_335e3b07efa769::t_11c68616ed4a02 1-5
+package.json
+  s_335e3b07efa769::t_c1365f42a45338 1-16,18-33
+  s_335e3b07efa769::t_e842bc23f39d3f 17
+src/lib/mock/data.ts
+  s_335e3b07efa769::t_0d4cd5330a892c 1-224
+tsconfig.json
+  s_335e3b07efa769::t_1e0139aed79f0e 1-27,30-40
+.gitignore
+  s_335e3b07efa769::t_af06e7645b486f 1-38,40
+src/types/index.ts
+  s_335e3b07efa769::t_9e878447000f32 1-116
+src/components/Navbar.tsx
+  s_335e3b07efa769::t_7a75e6790df993 1-45
+src/app/globals.css
+  s_335e3b07efa769::t_9bb1a98f1a3db7 1-31
+src/app/api/jira/sprints/route.ts
+  s_335e3b07efa769::t_83e7d9ffb38822 3,7,14,16-62,64
+  s_335e3b07efa769::t_8bf4ce135c2730 1-2,4-6,8-13,15,63,65-67
+src/app/decompose/page.tsx
+  s_335e3b07efa769::t_6ab699403b8cbf 1-256
+src/lib/jira/client.ts
+  s_335e3b07efa769::t_eff0ec460f5300 88-90
+  s_335e3b07efa769::t_a7c01bd7ade79a 8-9,11
+  s_335e3b07efa769::t_96e110465c1147 1,3-6,18-26,28-87,91-102,104-119,122,124,126-128,131-134,137-140
+  s_335e3b07efa769::t_8a14caebab17e5 2,7,10,12-17,27,103,120-121,123,125,129-130,135-136,141
+src/app/api/jira/backlog/route.ts
+  s_335e3b07efa769::t_584bb6fa2f8558 1-5,8-13,15-16,18,20-22
+  s_335e3b07efa769::t_2e04f404d67609 6-7,14,17,19
+src/app/api/ai/predict-size/route.ts
+  s_335e3b07efa769::t_d4d70330a2a5a6 1-28
+src/app/api/ai/sprint-report/route.ts
+  s_335e3b07efa769::t_12101543ce771a 1-49
+src/app/planning/page.tsx
+  s_335e3b07efa769::t_7a9d007b4e028f 1-281
+src/app/layout.tsx
+  s_335e3b07efa769::t_9125d8bd62c739 1-15
+tailwind.config.ts
+  s_335e3b07efa769::t_b3aabdba1b619f 1-27
+src/lib/claude/prompts.ts
+  s_335e3b07efa769::t_1014cd2f0d4042 1-172
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "67f593b5063a8b41f41ae53500fd3ddbbd66e34f",
+  "prompts": {},
+  "sessions": {
+    "s_335e3b07efa769": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fffb4f1e-071d-4d0c-8637-260b23246d3a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "tcenakilcioglu <nakilcioglu.emre@turkcell.com.tr>"
+    }
+  }
+}
