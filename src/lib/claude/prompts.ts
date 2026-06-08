@@ -119,13 +119,13 @@ ${JSON.stringify(done.map((i) => ({ key: i.key, summary: i.summary, points: i.st
 ## Tamamlanamayan Görevler (${notDone.length} adet):
 ${JSON.stringify(notDone.map((i) => ({ key: i.key, summary: i.summary, status: i.status, points: i.storyPoints })), null, 2)}
 
-Türkçe ve stakeholder'lara yönelik profesyonel bir dil kullan. Şu JSON formatında yanıt ver:
+Türkçe ve stakeholder'lara yönelik profesyonel bir dil kullan. Tüm alanlar dahil toplam metin 1000 karakteri geçmeyecek şekilde özlü yaz. Şu JSON formatında yanıt ver:
 {
-  "summary": "Sprint genel özeti (2-3 cümle)",
-  "achievements": ["Başarı 1", "Başarı 2", "Başarı 3"],
-  "challenges": ["Zorluk 1", "Zorluk 2"],
-  "nextSprintRecommendations": ["Öneri 1", "Öneri 2"],
-  "demoNarrative": "Demo sunumu için anlatı metni. Takımın neler başardığını iş değeri perspektifinden anlat."
+  "summary": "Sprint genel özeti (1-2 cümle, max 150 karakter)",
+  "achievements": ["Başarı 1 (max 80 karakter)", "Başarı 2", "Başarı 3"],
+  "challenges": ["Zorluk 1 (max 80 karakter)", "Zorluk 2"],
+  "nextSprintRecommendations": ["Öneri 1 (max 80 karakter)", "Öneri 2"],
+  "demoNarrative": "Demo anlatısı (max 200 karakter)"
 }
 
 Sadece geçerli JSON döndür.`;

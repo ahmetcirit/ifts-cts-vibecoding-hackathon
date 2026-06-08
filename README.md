@@ -1,6 +1,6 @@
 # AI Agile Manager
 
-> IFTS AI Hackathon 2025 — AI destekli Scrum asistanı
+> IFTS AI Hackathon 2026 — AI destekli Scrum asistanı
 
 Sprint planlama, görev kırılımı ve raporlama iş yükünü Claude AI ile otomatikleştiren bir yönetim paneli. Jira backlog'unu okur, takım yetkinliklerine göre görev atar ve sprint review raporunu otomatik üretir.
 

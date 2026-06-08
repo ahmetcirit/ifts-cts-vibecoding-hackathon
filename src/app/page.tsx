@@ -46,7 +46,7 @@ export default function Home() {
           <div className="text-center mb-14">
             <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-1.5 text-blue-400 text-sm mb-6">
               <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse-slow" />
-              IFTS AI Hackathon 2025
+              IFTS AI Hackathon 2026
             </div>
 
             <div className="flex items-center justify-center gap-3 mb-4">
@@ -54,7 +54,7 @@ export default function Home() {
                 <Zap className="w-5 h-5 text-white" />
               </div>
               <h1 className="text-5xl font-bold bg-gradient-to-r from-slate-100 via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                AI Agile Manager
+                CTS VibeCrafters Agile
               </h1>
             </div>
 
@@ -100,7 +100,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-slate-800 py-4 text-center text-xs text-slate-600">
-        IFTS AI Hackathon 2025 · Powered by Claude AI + Jira REST API
+        IFTS AI Hackathon 2026 · Powered by Claude AI + Jira REST API
       </footer>
     </main>
   );
