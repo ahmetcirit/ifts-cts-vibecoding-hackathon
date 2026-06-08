@@ -58,12 +58,15 @@ export function mapJiraIssue(raw: Record<string, unknown>): JiraIssue {
   const issuetype = f.issuetype as Record<string, unknown> | undefined;
   const components = (f.components as Record<string, unknown>[] | undefined) ?? [];
 
-  // Story points: try multiple common custom field IDs
+  // Story points: önce Turkcell MNTR'ye özgü alanları dene, sonra standart Jira alanlarına düş
   const storyPoints =
-    (f.customfield_10016 as number | null) ??
-    (f.customfield_10028 as number | null) ??
+    (f.customfield_11222 as number | null) ??  // Size — Turkcell aktif
+    (f.customfield_23920 as number | null) ??  // Point
+    (f.customfield_24520 as number | null) ??  // Analiz SP
+    (f.customfield_24521 as number | null) ??  // Geliştirme SP
+    (f.customfield_10016 as number | null) ??  // Jira Cloud standard
+    (f.customfield_10028 as number | null) ??  // Story Points (genellikle null)
     (f.customfield_10106 as number | null) ??
-    (f.story_points as number | null) ??
     undefined;
 
   // Description: plain string (Server v2) or ADF (Cloud v3)
@@ -109,9 +112,13 @@ const ISSUE_FIELDS = [
   "description",
   "status",
   "priority",
-  "customfield_10016",
-  "customfield_10028",
-  "customfield_10106",
+  "customfield_10016",  // Jira Cloud standard story points
+  "customfield_10028",  // Story Points (Turkcell Jira field name — often null)
+  "customfield_10106",  // another Cloud variant
+  "customfield_11222",  // Size — Turkcell MNTR projesinde aktif SP alanı
+  "customfield_23920",  // Point
+  "customfield_24520",  // Analiz SP
+  "customfield_24521",  // Geliştirme SP
   "assignee",
   "labels",
   "issuetype",
