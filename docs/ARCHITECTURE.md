@@ -110,7 +110,7 @@ Her AI özelliğinin prompt builder fonksiyonu burada. Tüm promptlar:
 ```
 /api/jira/backlog   GET  → JiraIssue[]     (mock veya gerçek Jira)
 /api/jira/sprints   GET  → JiraSprint[]    (son 5 closed + active, her biri için issue fetch)
-/api/jira/team      GET  → TeamMember[]    (şu an her zaman mock — bkz. Ekip Verisi)
+/api/jira/team      GET  → TeamMember[]    (Jira'dan; board'da assignee yoksa mock fallback)
 ```
 
 Mock mantığı her Jira route'unda aynı:
@@ -234,6 +234,6 @@ export async function GET(request: Request) {
 | Kısıt | Açıklama |
 |---|---|
 | Jira write yok | Hackathon kuralı — alt görevler sadece rapor olarak sunulur, Jira'ya yazılmaz |
-| Ekip verisi mock | `/api/jira/team` gerçek Jira'dan çekmez; `mock/data.ts` düzenlenir |
+| Ekip skills sınırlı | Skills ve role, issue özeti/label/component keyword'lerinden çıkarılır; proje bunları kullanmıyorsa boş kalır |
 | Story point field ID | Kuruluma göre değişir; `client.ts`'deki `ISSUE_FIELDS`'a ekle |
 | Claude rate limit | Çok sayıda eş zamanlı istek olursa 429 alınabilir — retry mekanizması eklenmemiştir |

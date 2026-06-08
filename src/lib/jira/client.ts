@@ -1,4 +1,4 @@
-import type { JiraIssue } from "@/types";
+import type { JiraIssue, TeamMember } from "@/types";
 
 const BASE = process.env.JIRA_BASE_URL;
 const EMAIL = process.env.JIRA_EMAIL;
@@ -138,4 +138,127 @@ export async function fetchSprintIssues(sprintId: number, maxResults = 100) {
   return jiraFetch(
     `/rest/agile/1.0/sprint/${sprintId}/issue?maxResults=${maxResults}&fields=${ISSUE_FIELDS}`
   );
+}
+
+// ─── Team ─────────────────────────────────────────────────────────────────────
+
+const SKILL_KEYWORDS: [RegExp, string][] = [
+  [/frontend|ui\b|react|angular|vue|css|html/i, "Frontend"],
+  [/backend|api\b|service|rest|soap|grpc|spring|node/i, "Backend"],
+  [/database|db\b|sql|oracle|postgres|mongo|redis/i, "Database"],
+  [/test|qa\b|selenium|cypress|junit|quality/i, "Test"],
+  [/devops|ci\b|cd\b|docker|k8s|kubernetes|deploy|pipeline/i, "DevOps"],
+  [/design|figma|ux\b|prototype/i, "Design"],
+];
+
+function inferSkills(texts: string[]): string[] {
+  const found = new Set<string>();
+  const combined = texts.join(" ").toLowerCase();
+  for (const [pattern, skill] of SKILL_KEYWORDS) {
+    if (pattern.test(combined)) found.add(skill);
+  }
+  return Array.from(found);
+}
+
+function inferRole(skills: string[]): string {
+  if (skills.includes("Test")) return "QA Engineer";
+  if (skills.includes("DevOps")) return "DevOps Engineer";
+  if (skills.includes("Frontend") && skills.includes("Backend")) return "Full Stack Developer";
+  if (skills.includes("Frontend")) return "Frontend Developer";
+  if (skills.includes("Backend")) return "Backend Developer";
+  return "Developer";
+}
+
+function storyPoints(f: Record<string, unknown>): number {
+  const v =
+    (f.customfield_10016 as number | null) ??
+    (f.customfield_10028 as number | null) ??
+    (f.customfield_10106 as number | null);
+  return v != null ? Number(v) : 0;
+}
+
+export async function fetchTeamFromBoard(boardId: number): Promise<TeamMember[]> {
+  // Fetch active sprint + most recent closed sprint in parallel
+  const [activeData, closedData] = await Promise.all([
+    fetchJiraSprints(boardId, "active", 1),
+    fetchJiraSprints(boardId, "closed", 1),
+  ]);
+
+  const activeSprint = (activeData.values ?? [])[0] as Record<string, unknown> | undefined;
+  const recentClosed = (closedData.values ?? [])[0] as Record<string, unknown> | undefined;
+
+  if (!activeSprint && !recentClosed) return [];
+
+  // Fetch issues for available sprints in parallel
+  const fetches: Promise<{ active: boolean; issues: Record<string, unknown>[] }>[] = [];
+  if (activeSprint) {
+    fetches.push(
+      fetchSprintIssues(activeSprint.id as number)
+        .then((d) => ({ active: true, issues: (d.issues ?? []) as Record<string, unknown>[] }))
+        .catch(() => ({ active: true, issues: [] }))
+    );
+  }
+  if (recentClosed) {
+    fetches.push(
+      fetchSprintIssues(recentClosed.id as number)
+        .then((d) => ({ active: false, issues: (d.issues ?? []) as Record<string, unknown>[] }))
+        .catch(() => ({ active: false, issues: [] }))
+    );
+  }
+
+  const results = await Promise.all(fetches);
+
+  // Build member map: accountId → TeamMember
+  const map = new Map<string, TeamMember & { _texts: string[] }>();
+
+  for (const { active, issues } of results) {
+    for (const raw of issues) {
+      const f = raw.fields as Record<string, unknown>;
+      const assignee = f.assignee as Record<string, unknown> | null;
+      if (!assignee) continue;
+
+      const id = ((assignee.accountId ?? assignee.name) as string | undefined)?.trim();
+      if (!id) continue;
+
+      if (!map.has(id)) {
+        map.set(id, {
+          id,
+          name: (assignee.displayName ?? assignee.name ?? "Unknown") as string,
+          email: (assignee.emailAddress ?? "") as string,
+          role: "Developer",
+          skills: [],
+          currentLoad: 0,
+          capacity: 20,
+          _texts: [],
+        });
+      }
+
+      const member = map.get(id)!;
+
+      // Accumulate text signals for skill inference
+      const summary = (f.summary as string) ?? "";
+      const components = ((f.components as { name: string }[]) ?? []).map((c) => c.name);
+      const labels = (f.labels as string[]) ?? [];
+      member._texts.push(summary, ...components, ...labels);
+
+      // currentLoad = story points assigned in ACTIVE sprint
+      if (active) {
+        const pts = storyPoints(f);
+        // If story points not configured, count each issue as 2pts (rough proxy)
+        member.currentLoad += pts > 0 ? pts : 2;
+      }
+    }
+  }
+
+  // Finalize members: derive skills + role, remove internal _texts
+  return Array.from(map.values())
+    .map(({ _texts, ...member }) => {
+      const skills = inferSkills(_texts);
+      return {
+        ...member,
+        skills,
+        role: skills.length > 0 ? inferRole(skills) : "Developer",
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, "tr"));
 }

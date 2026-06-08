@@ -88,10 +88,15 @@ src/
 2. `src/app/api/jira/xxx/route.ts` — mock mantığını kopyala, `mapJiraIssue()` ile map et
 3. Frontend'de `useMock` query param geçmeye gerek yok — JIRA_BASE_URL varsa otomatik gerçek
 
-## Ekip Verisini Güncelleme
+## Ekip Verisi
 
-`src/lib/mock/data.ts` → `mockTeamMembers` dizisini düzenle.
-Gerçek implementasyon için: Jira'da `/rest/api/2/group/member?groupname=...` endpoint'i veya LDAP/AD entegrasyonu gerekir.
+`JIRA_BASE_URL` tanımlıysa `/api/jira/team`, `fetchTeamFromBoard(boardId)` fonksiyonuyla Jira'dan çeker:
+- **Active sprint** issues → her assignee için `currentLoad` hesaplanır
+- **Son closed sprint** issues → skills ve role çıkarımı (özet/label/component keyword analizi)
+- Board'da atanmış issue yoksa `mock_fallback`'e düşer
+
+Skill çıkarım keyword'leri `client.ts`'deki `SKILL_KEYWORDS` dizisinde. Proje diline göre güncellenebilir.
+`capacity` default 20 — story point sistemi aktif olmayan projelerde issue sayısı × 2 proxy olarak kullanılır.
 
 ## Ortam Değişkenleri
 
