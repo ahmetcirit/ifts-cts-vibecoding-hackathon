@@ -1,0 +1,27 @@
+src/lib/claude/client.ts
+  s_335e3b07efa769::t_5ee6eb0a093ba3 1,3-4,7
+src/app/api/ai/predict-size/route.ts
+  s_335e3b07efa769::t_5854c763220a4e 2,13,19-20,22
+src/app/api/ai/sprint-report/route.ts
+  s_335e3b07efa769::t_c5a7414da3bc9f 1,12,22-28
+src/app/api/ai/health-score/route.ts
+  s_335e3b07efa769::t_4c950b8bebd06f 2,11,17-18,20
+src/app/api/ai/decompose/route.ts
+  s_335e3b07efa769::t_ee499489519cf4 2,13,19-20,22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "ec939f8099d9b8cd94c64f715d65a8e90aff2a50",
+  "prompts": {},
+  "sessions": {
+    "s_335e3b07efa769": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fffb4f1e-071d-4d0c-8637-260b23246d3a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "tcenakilcioglu <nakilcioglu.emre@turkcell.com.tr>"
+    }
+  }
+}
