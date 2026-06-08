@@ -1,0 +1,14 @@
+src/app/page.tsx
+  h_30a249df2d36d2 57,63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "4485aa9f6590f8c5201b0a087c528ff493d70077",
+  "prompts": {},
+  "humans": {
+    "h_30a249df2d36d2": {
+      "author": "TCBDIRIL <batuhan.diril@turkcell.com.tr>"
+    }
+  }
+}
