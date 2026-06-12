@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateObject } from "ai";
 import {
-  geminiModel,
-  GOOGLE_PROVIDER_OPTIONS,
+  getAiRequestConfig,
   MAX_OUTPUT_TOKENS,
   repairJsonText,
   TEMPERATURE,
@@ -17,12 +16,13 @@ export async function POST(request: Request) {
       await request.json();
 
     const prompt = buildPredictiveSizingPrompt(tasks, sprintHistory);
+    const aiConfig = getAiRequestConfig();
 
     const { object } = await generateObject({
-      model: geminiModel,
+      model: aiConfig.languageModel,
       temperature: TEMPERATURE,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
-      providerOptions: GOOGLE_PROVIDER_OPTIONS,
+      providerOptions: aiConfig.providerOptions,
       experimental_repairText: repairJsonText,
       schema: predictiveSizingSchema,
       prompt,

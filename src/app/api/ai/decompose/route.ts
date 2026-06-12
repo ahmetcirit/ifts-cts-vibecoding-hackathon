@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { generateObject } from "ai";
 import {
-  geminiModel,
-  GOOGLE_PROVIDER_OPTIONS,
+  getAiRequestConfig,
+  isAiConfigurationError,
   MAX_OUTPUT_TOKENS,
   repairJsonText,
   TEMPERATURE,
@@ -91,19 +91,24 @@ export async function POST(request: Request) {
 
   try {
     const prompt = buildTaskDecompositionPrompt(payload.task, payload.teamMembers);
+    const aiConfig = getAiRequestConfig();
 
     const { object } = await generateObject({
-      model: geminiModel,
+      model: aiConfig.languageModel,
       temperature: TEMPERATURE,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
-      providerOptions: GOOGLE_PROVIDER_OPTIONS,
+      providerOptions: aiConfig.providerOptions,
       experimental_repairText: repairJsonText,
       schema: taskDecompositionSchema,
       prompt,
     });
 
     return NextResponse.json(object);
-  } catch {
+  } catch (error) {
+    if (isAiConfigurationError(error)) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
     return NextResponse.json(buildFallbackDecomposition(payload.task, payload.teamMembers));
   }
 }

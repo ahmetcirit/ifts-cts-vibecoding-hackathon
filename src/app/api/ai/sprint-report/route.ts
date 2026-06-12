@@ -1,9 +1,10 @@
 import { generateText } from "ai";
-import { geminiModel, GOOGLE_PROVIDER_OPTIONS, TEMPERATURE } from "@/lib/ai/client";
+import { getAiRequestConfig, isAiConfigurationError, TEMPERATURE } from "@/lib/ai/client";
 import { buildSprintReportPrompt } from "@/lib/ai/prompts";
 import type { JiraSprint } from "@/types";
 
 const REPORT_MAX_CHARS = 800;
+type AiRequestConfig = ReturnType<typeof getAiRequestConfig>;
 
 function finalizeReport(text: string): string {
   const normalized = text.replace(/\s+/g, " ").trim();
@@ -116,15 +117,16 @@ function buildFallbackReport(sprint: JiraSprint, metrics: Record<string, unknown
 async function generateSprintReport(
   sprint: JiraSprint,
   metrics: Record<string, unknown>,
-  mode: "primary" | "retry"
+  mode: "primary" | "retry",
+  aiConfig: AiRequestConfig
 ) {
   const prompt = buildSprintReportPrompt(sprint, metrics, mode);
 
   const { text } = await generateText({
-    model: geminiModel,
+    model: aiConfig.languageModel,
     temperature: TEMPERATURE,
     maxOutputTokens: 520,
-    providerOptions: GOOGLE_PROVIDER_OPTIONS,
+    providerOptions: aiConfig.providerOptions,
     prompt,
   });
 
@@ -135,10 +137,11 @@ export async function POST(request: Request) {
   const payload: { sprint: JiraSprint; metrics: Record<string, unknown> } = await request.json();
 
   try {
-    let report = await generateSprintReport(payload.sprint, payload.metrics, "primary");
+    const aiConfig = getAiRequestConfig();
+    let report = await generateSprintReport(payload.sprint, payload.metrics, "primary", aiConfig);
 
     if (isWeakReport(report, payload.sprint.name)) {
-      report = await generateSprintReport(payload.sprint, payload.metrics, "retry");
+      report = await generateSprintReport(payload.sprint, payload.metrics, "retry", aiConfig);
     }
 
     if (isWeakReport(report, payload.sprint.name)) {
@@ -152,7 +155,17 @@ export async function POST(request: Request) {
         "X-Content-Type-Options": "nosniff",
       },
     });
-  } catch {
+  } catch (error) {
+    if (isAiConfigurationError(error)) {
+      return new Response(error.message, {
+        status: 500,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-cache",
+        },
+      });
+    }
+
     return new Response(buildFallbackReport(payload.sprint, payload.metrics), {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
