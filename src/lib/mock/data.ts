@@ -8,7 +8,7 @@ export const mockTeamMembers: TeamMember[] = [
     role: "Senior Frontend Developer",
     skills: ["React", "TypeScript", "Next.js", "CSS", "Jest"],
     currentLoad: 8,
-    capacity: 20,
+    capacity: 18,
   },
   {
     id: "user-2",
@@ -17,7 +17,7 @@ export const mockTeamMembers: TeamMember[] = [
     role: "Backend Developer",
     skills: ["Node.js", "Python", "PostgreSQL", "Redis", "Docker"],
     currentLoad: 13,
-    capacity: 20,
+    capacity: 18,
   },
   {
     id: "user-3",
@@ -26,7 +26,7 @@ export const mockTeamMembers: TeamMember[] = [
     role: "Full Stack Developer",
     skills: ["React", "Node.js", "PostgreSQL", "TypeScript", "AWS"],
     currentLoad: 5,
-    capacity: 20,
+    capacity: 18,
   },
   {
     id: "user-4",
@@ -35,7 +35,7 @@ export const mockTeamMembers: TeamMember[] = [
     role: "QA Engineer",
     skills: ["Selenium", "Cypress", "Jest", "API Testing", "Test Planning"],
     currentLoad: 6,
-    capacity: 15,
+    capacity: 18,
   },
 ];
 

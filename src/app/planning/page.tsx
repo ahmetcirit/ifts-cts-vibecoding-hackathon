@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
+import { fetchCachedJson } from "@/lib/api/client-cache";
 import { Brain, CheckSquare, Square, Loader2, TrendingUp, AlertCircle, ChevronRight } from "lucide-react";
 import {
   BarChart,
@@ -48,8 +49,8 @@ export default function PlanningPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/jira/backlog").then((r) => r.json()),
-      fetch("/api/jira/sprints").then((r) => r.json()),
+      fetchCachedJson<{ issues?: JiraIssue[] }>("/api/jira/backlog"),
+      fetchCachedJson<{ sprints?: JiraSprint[] }>("/api/jira/sprints"),
     ])
       .then(([b, s]) => {
         setBacklog(b.issues ?? []);
@@ -78,8 +79,11 @@ export default function PlanningPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tasks, sprintHistory: sprints }),
       });
-      if (!res.ok) throw new Error(await res.text());
-      setResult(await res.json());
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(typeof data?.error === "string" ? data.error : "AI predict-size failed");
+      }
+      setResult(data);
     } catch (e) {
       setError(String(e));
     } finally {

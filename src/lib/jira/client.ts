@@ -1,12 +1,53 @@
-import type { JiraIssue, TeamMember } from "@/types";
+import type { JiraIssue, JiraSprint, TeamMember } from "@/types";
 
 const BASE = process.env.JIRA_BASE_URL;
-const EMAIL = process.env.JIRA_EMAIL;
 const TOKEN = process.env.JIRA_API_TOKEN;
+const DEFAULT_MEMBER_CAPACITY_POINTS = 18;
+
+type JiraSearchResponse = {
+  issues?: Record<string, unknown>[];
+  total?: number;
+  startAt?: number;
+  maxResults?: number;
+};
+
+type ParsedSprint = {
+  id: number;
+  rapidViewId?: number;
+  state: JiraSprint["state"];
+  name: string;
+  startDate?: string;
+  endDate?: string;
+  completeDate?: string;
+  activatedDate?: string;
+  sequence?: number;
+  goal?: string;
+};
+
+const ISSUE_FIELDS = [
+  "summary",
+  "description",
+  "status",
+  "priority",
+  "customfield_10016",
+  "customfield_10020",
+  "customfield_10028",
+  "customfield_10106",
+  "customfield_11222",
+  "customfield_23920",
+  "customfield_24520",
+  "customfield_24521",
+  "assignee",
+  "labels",
+  "issuetype",
+  "components",
+].join(",");
 
 function authHeaders(): HeadersInit {
-  if (!BASE || !TOKEN) throw new Error("JIRA_BASE_URL / JIRA_API_TOKEN env variables not configured");
-  // Jira Server/DC Personal Access Token (PAT) — Bearer auth
+  if (!BASE || !TOKEN) {
+    throw new Error("JIRA_BASE_URL / JIRA_API_TOKEN env variables not configured");
+  }
+
   return {
     Authorization: `Bearer ${TOKEN}`,
     Accept: "application/json",
@@ -17,17 +58,51 @@ function authHeaders(): HeadersInit {
 async function jiraFetch(path: string) {
   const res = await fetch(`${BASE}${path}`, {
     headers: authHeaders(),
-    // Server-side only — no cache
     cache: "no-store",
   });
+
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`Jira ${path} → ${res.status} ${res.statusText}: ${body.slice(0, 200)}`);
+    throw new Error(`Jira ${path} -> ${res.status} ${res.statusText}: ${body.slice(0, 200)}`);
   }
+
   return res.json();
 }
 
-// ─── Mappers ─────────────────────────────────────────────────────────────────
+async function searchJiraIssues(
+  jql: string,
+  fields = ISSUE_FIELDS,
+  maxResults = 100,
+  startAt = 0
+): Promise<JiraSearchResponse> {
+  const encoded = encodeURIComponent(jql);
+  return jiraFetch(
+    `/rest/api/2/search?jql=${encoded}&startAt=${startAt}&maxResults=${maxResults}&fields=${fields}`
+  );
+}
+
+async function searchAllJiraIssues(
+  jql: string,
+  fields = ISSUE_FIELDS,
+  pageSize = 100,
+  maxTotal = 2000
+): Promise<Record<string, unknown>[]> {
+  const all: Record<string, unknown>[] = [];
+  let startAt = 0;
+
+  while (startAt < maxTotal) {
+    const page = await searchJiraIssues(jql, fields, pageSize, startAt);
+    const issues = (page.issues ?? []) as Record<string, unknown>[];
+    all.push(...issues);
+
+    const total = typeof page.total === "number" ? page.total : all.length;
+    if (issues.length === 0 || all.length >= total || issues.length < pageSize) break;
+
+    startAt += pageSize;
+  }
+
+  return all;
+}
 
 function mapIssueType(name: string): JiraIssue["issueType"] {
   const map: Record<string, JiraIssue["issueType"]> = {
@@ -38,60 +113,251 @@ function mapIssueType(name: string): JiraIssue["issueType"] {
     "Sub-task": "Sub-task",
     Subtask: "Sub-task",
   };
+
   return map[name] ?? "Task";
 }
 
 function mapStatus(name: string, categoryKey?: string): JiraIssue["status"] {
   if (categoryKey === "done") return "Done";
+
   const lower = name.toLowerCase();
-  if (lower.includes("done") || lower.includes("closed") || lower.includes("resolved")) return "Done";
-  if (lower.includes("progress") || lower.includes("development") || lower.includes("review") || lower.includes("testing")) return "In Progress";
-  if (lower.includes("block")) return "Blocked";
+  if (lower === "xl block" || lower.includes("block")) return "Blocked";
+
+  if (lower.includes("done") || lower.includes("closed") || lower.includes("resolved")) {
+    return "Done";
+  }
+  if (
+    lower.includes("progress") ||
+    lower.includes("development") ||
+    lower.includes("review") ||
+    lower.includes("testing")
+  ) {
+    return "In Progress";
+  }
+
   return "To Do";
 }
 
-export function mapJiraIssue(raw: Record<string, unknown>): JiraIssue {
-  const f = raw.fields as Record<string, unknown>;
-  const status = f.status as Record<string, unknown> | undefined;
-  const priority = f.priority as Record<string, unknown> | undefined;
-  const assignee = f.assignee as Record<string, unknown> | undefined;
-  const issuetype = f.issuetype as Record<string, unknown> | undefined;
-  const components = (f.components as Record<string, unknown>[] | undefined) ?? [];
-
-  // Story points: önce Turkcell MNTR'ye özgü alanları dene, sonra standart Jira alanlarına düş
-  const storyPoints =
-    (f.customfield_11222 as number | null) ??  // Size — Turkcell aktif
-    (f.customfield_23920 as number | null) ??  // Point
-    (f.customfield_24520 as number | null) ??  // Analiz SP
-    (f.customfield_24521 as number | null) ??  // Geliştirme SP
-    (f.customfield_10016 as number | null) ??  // Jira Cloud standard
-    (f.customfield_10028 as number | null) ??  // Story Points (genellikle null)
-    (f.customfield_10106 as number | null) ??
+function getStoryPoints(fields: Record<string, unknown>): number | undefined {
+  const value =
+    (fields.customfield_11222 as number | null) ??
+    (fields.customfield_23920 as number | null) ??
+    (fields.customfield_24520 as number | null) ??
+    (fields.customfield_24521 as number | null) ??
+    (fields.customfield_10016 as number | null) ??
+    (fields.customfield_10028 as number | null) ??
+    (fields.customfield_10106 as number | null) ??
     undefined;
 
-  // Description: plain string (Server v2) or ADF (Cloud v3)
-  let description: string | undefined;
-  if (typeof f.description === "string") {
-    description = f.description || undefined;
-  } else if (f.description && typeof f.description === "object") {
-    // ADF: extract first text node
-    const adf = f.description as { content?: { content?: { text?: string }[] }[] };
-    description = adf.content?.[0]?.content?.[0]?.text ?? undefined;
+  return value != null ? Number(value) : undefined;
+}
+
+function getIssueStatus(fields: Record<string, unknown>): JiraIssue["status"] {
+  const status = fields.status as Record<string, unknown> | undefined;
+  return mapStatus(
+    (status?.name as string) ?? "",
+    (status as { statusCategory?: { key?: string } } | undefined)?.statusCategory?.key
+  );
+}
+
+function parseDescription(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    return value || undefined;
   }
+
+  if (value && typeof value === "object") {
+    const adf = value as { content?: { content?: { text?: string }[] }[] };
+    return adf.content?.[0]?.content?.[0]?.text ?? undefined;
+  }
+
+  return undefined;
+}
+
+function sanitizeSprintValue(value: string | undefined): string | undefined {
+  if (!value || value === "<null>") return undefined;
+  return value;
+}
+
+function matchSprintField(input: string, field: string): string | undefined {
+  const match = input.match(new RegExp(`${field}=([^,\\]]+)`));
+  return sanitizeSprintValue(match?.[1]);
+}
+
+function parseSprintState(value: string | undefined): JiraSprint["state"] {
+  switch ((value ?? "").toUpperCase()) {
+    case "ACTIVE":
+      return "active";
+    case "CLOSED":
+      return "closed";
+    case "FUTURE":
+      return "future";
+    default:
+      return "closed";
+  }
+}
+
+function parseSprintValue(value: unknown): ParsedSprint | null {
+  if (!value) return null;
+
+  if (typeof value === "string") {
+    const id = Number(matchSprintField(value, "id"));
+    if (!Number.isFinite(id)) return null;
+
+    const rapidViewId = Number(matchSprintField(value, "rapidViewId"));
+    const sequence = Number(matchSprintField(value, "sequence"));
+
+    return {
+      id,
+      rapidViewId: Number.isFinite(rapidViewId) ? rapidViewId : undefined,
+      state: parseSprintState(matchSprintField(value, "state")),
+      name: matchSprintField(value, "name") ?? `Sprint ${id}`,
+      startDate: matchSprintField(value, "startDate"),
+      endDate: matchSprintField(value, "endDate"),
+      completeDate: matchSprintField(value, "completeDate"),
+      activatedDate: matchSprintField(value, "activatedDate"),
+      sequence: Number.isFinite(sequence) ? sequence : undefined,
+      goal: matchSprintField(value, "goal"),
+    };
+  }
+
+  if (typeof value === "object") {
+    const sprint = value as Record<string, unknown>;
+    const id = Number(sprint.id);
+    if (!Number.isFinite(id)) return null;
+
+    return {
+      id,
+      rapidViewId:
+        typeof sprint.rapidViewId === "number" ? sprint.rapidViewId : Number(sprint.rapidViewId) || undefined,
+      state: parseSprintState(typeof sprint.state === "string" ? sprint.state : undefined),
+      name: (sprint.name as string) ?? `Sprint ${id}`,
+      startDate: sanitizeSprintValue(sprint.startDate as string | undefined),
+      endDate: sanitizeSprintValue(sprint.endDate as string | undefined),
+      completeDate: sanitizeSprintValue(
+        (sprint.completeDate as string | undefined) ?? (sprint.completedDate as string | undefined)
+      ),
+      activatedDate: sanitizeSprintValue(sprint.activatedDate as string | undefined),
+      sequence: typeof sprint.sequence === "number" ? sprint.sequence : Number(sprint.sequence) || undefined,
+      goal: sanitizeSprintValue(sprint.goal as string | undefined),
+    };
+  }
+
+  return null;
+}
+
+export function getIssueSprints(fields: Record<string, unknown>): ParsedSprint[] {
+  const raw = fields.customfield_10020;
+  const values = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  const parsed = values
+    .map(parseSprintValue)
+    .filter((value): value is ParsedSprint => Boolean(value));
+
+  const byId = new Map<number, ParsedSprint>();
+  for (const sprint of parsed) {
+    const existing = byId.get(sprint.id);
+    if (!existing) {
+      byId.set(sprint.id, sprint);
+      continue;
+    }
+
+    byId.set(sprint.id, {
+      ...existing,
+      ...sprint,
+      name: sprint.name || existing.name,
+      state: sprint.state || existing.state,
+      startDate: sprint.startDate ?? existing.startDate,
+      endDate: sprint.endDate ?? existing.endDate,
+      completeDate: sprint.completeDate ?? existing.completeDate,
+      activatedDate: sprint.activatedDate ?? existing.activatedDate,
+      goal: sprint.goal ?? existing.goal,
+      rapidViewId: sprint.rapidViewId ?? existing.rapidViewId,
+      sequence: sprint.sequence ?? existing.sequence,
+    });
+  }
+
+  return Array.from(byId.values());
+}
+
+function compareSprints(a: ParsedSprint, b: ParsedSprint): number {
+  const aStateRank = a.state === "active" ? 3 : a.state === "future" ? 2 : 1;
+  const bStateRank = b.state === "active" ? 3 : b.state === "future" ? 2 : 1;
+  if (aStateRank !== bStateRank) return bStateRank - aStateRank;
+
+  const aSeq = a.sequence ?? 0;
+  const bSeq = b.sequence ?? 0;
+  if (aSeq !== bSeq) return bSeq - aSeq;
+
+  const aTime = a.startDate ? new Date(a.startDate).getTime() : 0;
+  const bTime = b.startDate ? new Date(b.startDate).getTime() : 0;
+  return bTime - aTime;
+}
+
+function getCurrentSprint(fields: Record<string, unknown>): ParsedSprint | undefined {
+  const sprints = getIssueSprints(fields);
+  return sprints.sort(compareSprints)[0];
+}
+
+function createSprintMapFromIssues(issues: Record<string, unknown>[]): Map<number, JiraSprint> {
+  const sprintMap = new Map<number, JiraSprint>();
+
+  for (const raw of issues) {
+    const fields = raw.fields as Record<string, unknown>;
+    const mappedIssue = mapJiraIssue(raw);
+    const sprints = getIssueSprints(fields);
+
+    for (const sprint of sprints) {
+      const existing = sprintMap.get(sprint.id);
+      if (!existing) {
+        sprintMap.set(sprint.id, {
+          id: sprint.id,
+          name: sprint.name,
+          state: sprint.state,
+          startDate: sprint.startDate ?? "",
+          endDate: sprint.endDate ?? "",
+          completedDate: sprint.completeDate,
+          goal: sprint.goal,
+          issues: [mappedIssue],
+        });
+      } else {
+        existing.issues.push(mappedIssue);
+        existing.state = sprint.state || existing.state;
+        existing.name = sprint.name || existing.name;
+        existing.startDate = sprint.startDate ?? existing.startDate;
+        existing.endDate = sprint.endDate ?? existing.endDate;
+        existing.completedDate = sprint.completeDate ?? existing.completedDate;
+        existing.goal = sprint.goal ?? existing.goal;
+      }
+    }
+  }
+
+  for (const sprint of sprintMap.values()) {
+    sprint.plannedPoints = sprint.issues.reduce((sum, issue) => sum + (issue.storyPoints ?? 0), 0);
+    sprint.completedPoints = sprint.issues
+      .filter((issue) => issue.status === "Done")
+      .reduce((sum, issue) => sum + (issue.storyPoints ?? 0), 0);
+    sprint.velocity = sprint.completedPoints;
+  }
+
+  return sprintMap;
+}
+
+export function mapJiraIssue(raw: Record<string, unknown>): JiraIssue {
+  const fields = raw.fields as Record<string, unknown>;
+  const priority = fields.priority as Record<string, unknown> | undefined;
+  const assignee = fields.assignee as Record<string, unknown> | undefined;
+  const issueType = fields.issuetype as Record<string, unknown> | undefined;
+  const components = (fields.components as Record<string, unknown>[] | undefined) ?? [];
 
   return {
     id: raw.id as string,
     key: raw.key as string,
-    summary: (f.summary as string) ?? "",
-    description,
-    status: mapStatus(
-      (status?.name as string) ?? "",
-      (status as { statusCategory?: { key?: string } } | undefined)?.statusCategory?.key
-    ),
-    priority: (["Highest", "High", "Medium", "Low", "Lowest"].includes(priority?.name as string)
+    summary: (fields.summary as string) ?? "",
+    description: parseDescription(fields.description),
+    status: getIssueStatus(fields),
+    priority: ["Highest", "High", "Medium", "Low", "Lowest"].includes(priority?.name as string)
       ? (priority?.name as JiraIssue["priority"])
-      : "Medium"),
-    storyPoints: storyPoints != null ? Number(storyPoints) : undefined,
+      : "Lowest",
+    storyPoints: getStoryPoints(fields),
     assignee: assignee
       ? {
           accountId: (assignee.accountId as string) ?? (assignee.name as string) ?? "",
@@ -99,76 +365,44 @@ export function mapJiraIssue(raw: Record<string, unknown>): JiraIssue {
           emailAddress: (assignee.emailAddress as string) ?? "",
         }
       : undefined,
-    labels: (f.labels as string[]) ?? [],
-    issueType: mapIssueType((issuetype?.name as string) ?? "Task"),
-    components: components.map((c) => c.name as string),
+    labels: (fields.labels as string[]) ?? [],
+    issueType: mapIssueType((issueType?.name as string) ?? "Task"),
+    components: components.map((component) => component.name as string),
   };
 }
 
-// ─── API calls ───────────────────────────────────────────────────────────────
-
-const ISSUE_FIELDS = [
-  "summary",
-  "description",
-  "status",
-  "priority",
-  "customfield_10016",  // Jira Cloud standard story points
-  "customfield_10028",  // Story Points (Turkcell Jira field name — often null)
-  "customfield_10106",  // another Cloud variant
-  "customfield_11222",  // Size — Turkcell MNTR projesinde aktif SP alanı
-  "customfield_23920",  // Point
-  "customfield_24520",  // Analiz SP
-  "customfield_24521",  // Geliştirme SP
-  "assignee",
-  "labels",
-  "issuetype",
-  "components",
-].join(",");
-
 export async function fetchJiraBacklog(projectKey: string, maxResults = 50) {
-  // Jira Server uses /rest/api/2, Cloud uses /rest/api/3 — both accept this JQL
-  const jql = encodeURIComponent(
-    `project = "${projectKey}" AND sprint is EMPTY AND statusCategory != Done ORDER BY priority ASC`
-  );
-  return jiraFetch(
-    `/rest/api/2/search?jql=${jql}&maxResults=${maxResults}&fields=${ISSUE_FIELDS}`
+  return searchJiraIssues(
+    `project = "${projectKey}" AND sprint is EMPTY AND statusCategory != Done ORDER BY priority ASC`,
+    ISSUE_FIELDS,
+    maxResults
   );
 }
 
-export async function fetchJiraSprints(boardId: number, state: string, maxResults = 10) {
-  return jiraFetch(
-    `/rest/agile/1.0/board/${boardId}/sprint?state=${state}&maxResults=${maxResults}`
+export async function fetchJiraProjectIssues(projectKey: string, maxResults = 100) {
+  return searchJiraIssues(
+    `project = "${projectKey}" AND assignee is not EMPTY ORDER BY updated DESC`,
+    ISSUE_FIELDS,
+    maxResults
   );
 }
 
-// Tüm sayfaları gezerek board'daki TÜM sprintleri getirir (state filtresiz).
-// Jira /sprint endpoint'i ID artan sırada döner; pagination şart, aksi hâlde en yeni sprintler kaçar.
-export async function fetchAllJiraSprints(boardId: number): Promise<Record<string, unknown>[]> {
-  const PAGE = 50;
-  const all: Record<string, unknown>[] = [];
-  let startAt = 0;
-
-  while (true) {
-    const data = await jiraFetch(
-      `/rest/agile/1.0/board/${boardId}/sprint?startAt=${startAt}&maxResults=${PAGE}`
-    );
-    const values = (data.values ?? []) as Record<string, unknown>[];
-    all.push(...values);
-    if (data.isLast === true || values.length < PAGE) break;
-    startAt += PAGE;
-    if (startAt > 1000) break; // güvenlik tavanı
-  }
-
-  return all;
-}
-
-export async function fetchSprintIssues(sprintId: number, maxResults = 100) {
-  return jiraFetch(
-    `/rest/agile/1.0/sprint/${sprintId}/issue?maxResults=${maxResults}&fields=${ISSUE_FIELDS}`
+export async function fetchAllJiraSprintIssues(projectKey: string): Promise<Record<string, unknown>[]> {
+  return searchAllJiraIssues(
+    `project = "${projectKey}" AND sprint is not EMPTY ORDER BY updated DESC`,
+    ISSUE_FIELDS
   );
 }
 
-// ─── Team ─────────────────────────────────────────────────────────────────────
+export async function fetchAllJiraSprints(projectKey: string): Promise<JiraSprint[]> {
+  const issues = await fetchAllJiraSprintIssues(projectKey);
+  return Array.from(createSprintMapFromIssues(issues).values()).sort((a, b) => {
+    const aTime = a.startDate ? new Date(a.startDate).getTime() : 0;
+    const bTime = b.startDate ? new Date(b.startDate).getTime() : 0;
+    if (aTime !== bTime) return aTime - bTime;
+    return a.id - b.id;
+  });
+}
 
 const SKILL_KEYWORDS: [RegExp, string][] = [
   [/frontend|ui\b|react|angular|vue|css|html/i, "Frontend"],
@@ -182,103 +416,67 @@ const SKILL_KEYWORDS: [RegExp, string][] = [
 function inferSkills(texts: string[]): string[] {
   const found = new Set<string>();
   const combined = texts.join(" ").toLowerCase();
+
   for (const [pattern, skill] of SKILL_KEYWORDS) {
     if (pattern.test(combined)) found.add(skill);
   }
+
   return Array.from(found);
 }
 
 function inferRole(skills: string[]): string {
-  if (skills.includes("Test")) return "QA Engineer";
-  if (skills.includes("DevOps")) return "DevOps Engineer";
   if (skills.includes("Frontend") && skills.includes("Backend")) return "Full Stack Developer";
-  if (skills.includes("Frontend")) return "Frontend Developer";
   if (skills.includes("Backend")) return "Backend Developer";
+  if (skills.includes("Frontend")) return "Frontend Developer";
+  if (skills.includes("Database")) return "Database Developer";
+  if (skills.includes("DevOps")) return "DevOps Engineer";
+  if (skills.includes("Test")) return "QA Engineer";
   return "Developer";
 }
 
-function storyPoints(f: Record<string, unknown>): number {
-  const v =
-    (f.customfield_10016 as number | null) ??
-    (f.customfield_10028 as number | null) ??
-    (f.customfield_10106 as number | null);
-  return v != null ? Number(v) : 0;
-}
-
-export async function fetchTeamFromBoard(boardId: number): Promise<TeamMember[]> {
-  // Fetch active sprint + most recent closed sprint in parallel
-  const [activeData, closedData] = await Promise.all([
-    fetchJiraSprints(boardId, "active", 1),
-    fetchJiraSprints(boardId, "closed", 1),
-  ]);
-
-  const activeSprint = (activeData.values ?? [])[0] as Record<string, unknown> | undefined;
-  const recentClosed = (closedData.values ?? [])[0] as Record<string, unknown> | undefined;
-
-  if (!activeSprint && !recentClosed) return [];
-
-  // Fetch issues for available sprints in parallel
-  const fetches: Promise<{ active: boolean; issues: Record<string, unknown>[] }>[] = [];
-  if (activeSprint) {
-    fetches.push(
-      fetchSprintIssues(activeSprint.id as number)
-        .then((d) => ({ active: true, issues: (d.issues ?? []) as Record<string, unknown>[] }))
-        .catch(() => ({ active: true, issues: [] }))
-    );
-  }
-  if (recentClosed) {
-    fetches.push(
-      fetchSprintIssues(recentClosed.id as number)
-        .then((d) => ({ active: false, issues: (d.issues ?? []) as Record<string, unknown>[] }))
-        .catch(() => ({ active: false, issues: [] }))
-    );
-  }
-
-  const results = await Promise.all(fetches);
-
-  // Build member map: accountId → TeamMember
+function buildTeamMembersFromIssues(
+  issues: Record<string, unknown>[],
+  activeSprintId?: number
+): TeamMember[] {
   const map = new Map<string, TeamMember & { _texts: string[] }>();
 
-  for (const { active, issues } of results) {
-    for (const raw of issues) {
-      const f = raw.fields as Record<string, unknown>;
-      const assignee = f.assignee as Record<string, unknown> | null;
-      if (!assignee) continue;
+  for (const raw of issues) {
+    const fields = raw.fields as Record<string, unknown>;
+    const assignee = fields.assignee as Record<string, unknown> | null;
+    if (!assignee) continue;
 
-      const id = ((assignee.accountId ?? assignee.name) as string | undefined)?.trim();
-      if (!id) continue;
+    const id = ((assignee.accountId ?? assignee.name) as string | undefined)?.trim();
+    if (!id) continue;
 
-      if (!map.has(id)) {
-        map.set(id, {
-          id,
-          name: (assignee.displayName ?? assignee.name ?? "Unknown") as string,
-          email: (assignee.emailAddress ?? "") as string,
-          role: "Developer",
-          skills: [],
-          currentLoad: 0,
-          capacity: 20,
-          _texts: [],
-        });
-      }
+    if (!map.has(id)) {
+      map.set(id, {
+        id,
+        name: (assignee.displayName ?? assignee.name ?? "Unknown") as string,
+        email: (assignee.emailAddress ?? "") as string,
+        role: "Developer",
+        skills: [],
+        currentLoad: 0,
+        capacity: DEFAULT_MEMBER_CAPACITY_POINTS,
+        _texts: [],
+      });
+    }
 
-      const member = map.get(id)!;
+    const member = map.get(id)!;
+    const summary = (fields.summary as string) ?? "";
+    const components = ((fields.components as { name: string }[]) ?? []).map((component) => component.name);
+    const labels = (fields.labels as string[]) ?? [];
+    member._texts.push(summary, ...components, ...labels);
 
-      // Accumulate text signals for skill inference
-      const summary = (f.summary as string) ?? "";
-      const components = ((f.components as { name: string }[]) ?? []).map((c) => c.name);
-      const labels = (f.labels as string[]) ?? [];
-      member._texts.push(summary, ...components, ...labels);
-
-      // currentLoad = story points assigned in ACTIVE sprint
-      if (active) {
-        const pts = storyPoints(f);
-        // If story points not configured, count each issue as 2pts (rough proxy)
-        member.currentLoad += pts > 0 ? pts : 2;
+    const status = getIssueStatus(fields);
+    if (activeSprintId != null && (status === "In Progress" || status === "To Do")) {
+      const belongsToActiveSprint = getIssueSprints(fields).some((sprint) => sprint.id === activeSprintId);
+      if (belongsToActiveSprint) {
+        const points = getStoryPoints(fields);
+        member.currentLoad += points && points > 0 ? points : 0;
       }
     }
   }
 
-  // Finalize members: derive skills + role, remove internal _texts
   return Array.from(map.values())
     .map(({ _texts, ...member }) => {
       const skills = inferSkills(_texts);
@@ -289,4 +487,25 @@ export async function fetchTeamFromBoard(boardId: number): Promise<TeamMember[]>
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name, "tr"));
+}
+
+export async function fetchTeamForProject(projectKey: string): Promise<TeamMember[]> {
+  const issues = await searchAllJiraIssues(
+    `project = "${projectKey}" AND assignee is not EMPTY ORDER BY updated DESC`,
+    ISSUE_FIELDS
+  );
+  const sprintIssues = issues.filter((issue) => {
+    const fields = issue.fields as Record<string, unknown>;
+    return getIssueSprints(fields).length > 0;
+  });
+  const sprints = Array.from(createSprintMapFromIssues(sprintIssues).values());
+  const activeSprint = sprints
+    .filter((sprint) => sprint.state === "active")
+    .sort((a, b) => {
+      const aTime = a.startDate ? new Date(a.startDate).getTime() : 0;
+      const bTime = b.startDate ? new Date(b.startDate).getTime() : 0;
+      return bTime - aTime;
+    })[0];
+
+  return buildTeamMembersFromIssues(issues, activeSprint?.id);
 }

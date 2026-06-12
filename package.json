@@ -9,7 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.102.0",
+    "@ai-sdk/google": "^3.0.80",
+    "ai": "^6.0.199",
     "clsx": "^2.1.1",
     "lucide-react": "^0.390.0",
     "next": "^15.0.0",
@@ -17,6 +18,7 @@
     "react-dom": "^18.3.0",
     "recharts": "^3.0.0",
     "tailwind-merge": "^2.3.0",
+    "zod": "^4.4.3",
     "zustand": "^4.5.2"
   },
   "devDependencies": {

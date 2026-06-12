@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
+import { fetchCachedJson } from "@/lib/api/client-cache";
 import {
   BarChart3,
   Loader2,
@@ -24,7 +25,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import type { JiraSprint, SprintHealthScore } from "@/types";
+import type { JiraSprint, SprintHealthScore, TeamMember } from "@/types";
 import { clsx } from "clsx";
 
 function calcMetrics(sprint: JiraSprint) {
@@ -83,6 +84,7 @@ const GRADE_COLOR: Record<string, string> = {
 
 export default function DashboardPage() {
   const [sprints, setSprints] = useState<JiraSprint[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [activeSprint, setActiveSprint] = useState<JiraSprint | null>(null);
   const [healthScore, setHealthScore] = useState<SprintHealthScore | null>(null);
   const [reportText, setReportText] = useState("");
@@ -92,11 +94,14 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/jira/sprints")
-      .then((r) => r.json())
-      .then((d) => {
-        const all: JiraSprint[] = d.sprints ?? [];
+    Promise.all([
+      fetchCachedJson<{ sprints?: JiraSprint[] }>("/api/jira/sprints"),
+      fetchCachedJson<{ members?: TeamMember[] }>("/api/jira/team"),
+    ])
+      .then(([sprintData, teamData]) => {
+        const all: JiraSprint[] = sprintData.sprints ?? [];
         setSprints(all);
+        setTeamMembers(teamData.members ?? []);
         const active = all.find((s) => s.state === "active") ?? all[all.length - 1];
         setActiveSprint(active ?? null);
       })
@@ -115,6 +120,13 @@ export default function DashboardPage() {
     const lastV = closedSprints[closedSprints.length - 1]?.velocity ?? 0;
     const prevV = closedSprints[closedSprints.length - 2]?.velocity ?? 0;
     const trend = lastV > prevV ? "up" : lastV < prevV ? "down" : "stable";
+    const teamCapacityUsage = teamMembers.length
+      ? Math.round(
+          (teamMembers.reduce((sum, member) => sum + member.currentLoad, 0) /
+            teamMembers.reduce((sum, member) => sum + member.capacity, 0)) *
+            100
+        )
+      : 0;
 
     setLoadingHealth(true);
     setError(null);
@@ -127,7 +139,7 @@ export default function DashboardPage() {
           velocityTrend: trend,
           blockerCount: m.blockedTasks,
           carryoverRate: m.carryoverRate,
-          teamCapacityUsage: 75, // placeholder
+          teamCapacityUsage,
           sprintGoalMet: m.completionRate >= 80,
         }),
       });
@@ -152,14 +164,11 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sprint: activeSprint, metrics: m }),
       });
-      if (!res.ok) throw new Error(await res.text());
-      const reader = res.body!.getReader();
-      const decoder = new TextDecoder();
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        setReportText((prev) => prev + decoder.decode(value));
+      const text = await res.text();
+      if (!res.ok) {
+        throw new Error(text);
       }
+      setReportText(text.trim());
     } catch (e) {
       setError(String(e));
     } finally {
@@ -239,7 +248,7 @@ export default function DashboardPage() {
                   {
                     label: "Tamamlanan",
                     value: `${metrics.doneTasks}/${metrics.totalTasks}`,
-                    sub: "görev",
+                    sub: "task",
                     color: "text-blue-400",
                   },
                   {
@@ -251,7 +260,7 @@ export default function DashboardPage() {
                   {
                     label: "Blocker",
                     value: metrics.blockedTasks,
-                    sub: "engellenen görev",
+                    sub: "task",
                     color: metrics.blockedTasks > 0 ? "text-red-400" : "text-emerald-400",
                   },
                 ].map(({ label, value, sub, color }) => (

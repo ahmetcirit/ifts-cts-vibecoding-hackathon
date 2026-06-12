@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
+import { fetchCachedJson } from "@/lib/api/client-cache";
 import { Layers, Loader2, AlertCircle, User, Clock, ChevronRight } from "lucide-react";
-import type { JiraIssue, TeamMember, DecompositionResult, SubTaskType } from "@/types";
+import type { JiraIssue, JiraSprint, TeamMember, DecompositionResult, SubTaskType } from "@/types";
 import { clsx } from "clsx";
 
 const TYPE_COLOR: Record<SubTaskType, string> = {
@@ -15,9 +16,12 @@ const TYPE_COLOR: Record<SubTaskType, string> = {
   Design: "bg-pink-500/10 text-pink-400 border-pink-500/20",
 };
 
+const IDEAL_MEMBER_CAPACITY_POINTS = 18;
+
 export default function DecomposePage() {
   const [backlog, setBacklog] = useState<JiraIssue[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [activeSprint, setActiveSprint] = useState<JiraSprint | null>(null);
   const [selectedTask, setSelectedTask] = useState<JiraIssue | null>(null);
   const [result, setResult] = useState<DecompositionResult | null>(null);
   const [loadingData, setLoadingData] = useState(true);
@@ -26,16 +30,66 @@ export default function DecomposePage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/jira/backlog").then((r) => r.json()),
-      fetch("/api/jira/team").then((r) => r.json()),
+      fetchCachedJson<{ issues?: JiraIssue[] }>("/api/jira/backlog"),
+      fetchCachedJson<{ members?: TeamMember[] }>("/api/jira/team"),
+      fetchCachedJson<{ sprints?: JiraSprint[] }>("/api/jira/sprints"),
     ])
-      .then(([b, t]) => {
+      .then(([b, t, s]) => {
         setBacklog(b.issues ?? []);
         setTeamMembers(t.members ?? []);
+        const allSprints = s.sprints ?? [];
+        const active =
+          allSprints.find((sprint) => sprint.state === "active") ?? allSprints[allSprints.length - 1] ?? null;
+        setActiveSprint(active);
       })
       .catch((e) => setError(String(e)))
       .finally(() => setLoadingData(false));
   }, []);
+
+  function getIssuePoints(issue: JiraIssue) {
+    return typeof issue.storyPoints === "number" && issue.storyPoints > 0 ? issue.storyPoints : 0;
+  }
+
+  function isOpenCapacityStatus(issue: JiraIssue) {
+    return issue.status === "In Progress" || issue.status === "To Do";
+  }
+
+  const activeTeamMembers = (() => {
+    if (!activeSprint) return teamMembers;
+
+    const activeMemberStats = new Map<
+      string,
+      { openPoints: number }
+    >();
+
+    for (const issue of activeSprint.issues) {
+      const assigneeId = issue.assignee?.accountId;
+      if (!assigneeId) continue;
+
+      const current = activeMemberStats.get(assigneeId) ?? { openPoints: 0 };
+      if (isOpenCapacityStatus(issue)) {
+        current.openPoints += getIssuePoints(issue);
+      }
+      activeMemberStats.set(assigneeId, current);
+    }
+
+    const filtered = teamMembers
+      .filter((member) => activeMemberStats.has(member.id))
+      .map((member) => {
+        const stats = activeMemberStats.get(member.id)!;
+        return {
+          ...member,
+          currentLoad: stats.openPoints,
+          capacity: IDEAL_MEMBER_CAPACITY_POINTS,
+        };
+      })
+      .sort((a, b) => {
+        if (b.currentLoad !== a.currentLoad) return b.currentLoad - a.currentLoad;
+        return a.name.localeCompare(b.name, "tr");
+      });
+
+    return filtered.length > 0 ? filtered : teamMembers;
+  })();
 
   async function decompose(task: JiraIssue) {
     setSelectedTask(task);
@@ -46,10 +100,13 @@ export default function DecomposePage() {
       const res = await fetch("/api/ai/decompose", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task, teamMembers }),
+        body: JSON.stringify({ task, teamMembers: activeTeamMembers }),
       });
-      if (!res.ok) throw new Error(await res.text());
-      setResult(await res.json());
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(typeof data?.error === "string" ? data.error : "AI decompose failed");
+      }
+      setResult(data);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -58,11 +115,11 @@ export default function DecomposePage() {
   }
 
   function memberById(id: string) {
-    return teamMembers.find((m) => m.id === id);
+    return activeTeamMembers.find((m) => m.id === id);
   }
 
   const capacityPct = (m: TeamMember) =>
-    Math.round((m.currentLoad / m.capacity) * 100);
+    m.capacity > 0 ? Math.round((m.currentLoad / m.capacity) * 100) : 0;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -119,13 +176,16 @@ export default function DecomposePage() {
             {/* Team Capacity */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
               <h3 className="text-sm font-semibold text-slate-200 mb-3">Ekip Kapasitesi</h3>
+              <p className="text-xs text-slate-500 mb-3">
+                Aktif sprintte gorevi olan kisiler listelenir. Degerler acik is SP / 18 ideal kapasitedir.
+              </p>
               <div className="space-y-3">
-                {teamMembers.map((m) => {
+                {activeTeamMembers.map((m) => {
                   const pct = capacityPct(m);
                   return (
                     <div key={m.id}>
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="text-slate-300">{m.name.split(" ")[0]}</span>
+                        <span className="text-slate-300">{m.name}</span>
                         <span className={clsx("font-medium", pct >= 80 ? "text-red-400" : pct >= 60 ? "text-yellow-400" : "text-emerald-400")}>
                           {m.currentLoad}/{m.capacity} pts
                         </span>
@@ -139,6 +199,9 @@ export default function DecomposePage() {
                     </div>
                   );
                 })}
+                {activeTeamMembers.length === 0 && (
+                  <div className="text-xs text-slate-500">Aktif sprintte atanmis kisi bulunamadi.</div>
+                )}
               </div>
             </div>
           </div>

@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
-import { anthropic, MODEL, MAX_TOKENS } from "@/lib/claude/client";
-import { buildPredictiveSizingPrompt } from "@/lib/claude/prompts";
+import { generateObject } from "ai";
+import {
+  geminiModel,
+  GOOGLE_PROVIDER_OPTIONS,
+  MAX_OUTPUT_TOKENS,
+  repairJsonText,
+  TEMPERATURE,
+} from "@/lib/ai/client";
+import { buildPredictiveSizingPrompt } from "@/lib/ai/prompts";
+import { predictiveSizingSchema } from "@/lib/ai/schemas";
 import type { JiraIssue, JiraSprint } from "@/types";
 
 export async function POST(request: Request) {
@@ -10,17 +18,16 @@ export async function POST(request: Request) {
 
     const prompt = buildPredictiveSizingPrompt(tasks, sprintHistory);
 
-    const message = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: MAX_TOKENS,
-      messages: [{ role: "user", content: prompt }],
+    const { object } = await generateObject({
+      model: geminiModel,
+      temperature: TEMPERATURE,
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      providerOptions: GOOGLE_PROVIDER_OPTIONS,
+      experimental_repairText: repairJsonText,
+      schema: predictiveSizingSchema,
+      prompt,
     });
-
-    const block = message.content[0];
-    if (block.type !== "text") throw new Error("Unexpected response type from Claude");
-
-    const raw = block.text.replace(/^```json\s*|```$/g, "").trim();
-    return NextResponse.json(JSON.parse(raw));
+    return NextResponse.json(object);
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
