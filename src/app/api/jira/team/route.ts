@@ -7,28 +7,35 @@ const JIRA_CACHE_TTL_MS = 2 * 60 * 1000;
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const useMock = !process.env.JIRA_BASE_URL || searchParams.get("mock") === "true";
+  const projectKey = searchParams.get("project") ?? process.env.JIRA_PROJECT_KEY ?? "SCRUM";
 
   if (useMock) {
     return NextResponse.json(
-      { members: mockTeamMembers, source: "mock" },
+      {
+        members: mockTeamMembers,
+        source: "mock",
+        project: { key: projectKey, name: `${projectKey} Team` },
+      },
       { headers: cacheHeaders(JIRA_CACHE_TTL_MS) }
     );
   }
 
   try {
-    const { fetchTeamForProject } = await import("@/lib/jira/client");
-    const projectKey = searchParams.get("project") ?? process.env.JIRA_PROJECT_KEY ?? "SCRUM";
+    const { fetchJiraProjectInfo, fetchTeamForProject } = await import("@/lib/jira/client");
     const refresh = searchParams.get("refresh") === "true";
     const result = await getCached(
       `jira:team:${projectKey}`,
       async () => {
-        const members = await fetchTeamForProject(projectKey);
+        const [members, project] = await Promise.all([
+          fetchTeamForProject(projectKey),
+          fetchJiraProjectInfo(projectKey).catch(() => ({ key: projectKey, name: projectKey })),
+        ]);
 
         if (members.length === 0) {
-          return { members: mockTeamMembers, source: "mock_fallback" };
+          return { members: mockTeamMembers, source: "mock_fallback", project };
         }
 
-        return { members, source: "jira" };
+        return { members, source: "jira", project };
       },
       JIRA_CACHE_TTL_MS,
       refresh

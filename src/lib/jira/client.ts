@@ -11,6 +11,18 @@ type JiraSearchResponse = {
   maxResults?: number;
 };
 
+export type JiraProjectInfo = {
+  key: string;
+  name: string;
+};
+
+export type JiraCurrentUser = {
+  accountId: string;
+  displayName: string;
+  emailAddress?: string;
+  avatarUrl?: string;
+};
+
 type ParsedSprint = {
   id: number;
   rapidViewId?: number;
@@ -508,4 +520,33 @@ export async function fetchTeamForProject(projectKey: string): Promise<TeamMembe
     })[0];
 
   return buildTeamMembersFromIssues(issues, activeSprint?.id);
+}
+
+export async function fetchJiraProjectInfo(projectKey: string): Promise<JiraProjectInfo> {
+  const project = (await jiraFetch(`/rest/api/2/project/${encodeURIComponent(projectKey)}`)) as {
+    key?: string;
+    name?: string;
+  };
+
+  return {
+    key: project.key ?? projectKey,
+    name: project.name ?? projectKey,
+  };
+}
+
+export async function fetchJiraCurrentUser(): Promise<JiraCurrentUser> {
+  const user = (await jiraFetch("/rest/api/2/myself")) as {
+    accountId?: string;
+    name?: string;
+    displayName?: string;
+    emailAddress?: string;
+    avatarUrls?: Record<string, string>;
+  };
+
+  return {
+    accountId: user.accountId ?? user.name ?? "",
+    displayName: user.displayName ?? user.name ?? "Jira Kullanıcısı",
+    emailAddress: user.emailAddress,
+    avatarUrl: user.avatarUrls?.["48x48"] ?? user.avatarUrls?.["32x32"],
+  };
 }

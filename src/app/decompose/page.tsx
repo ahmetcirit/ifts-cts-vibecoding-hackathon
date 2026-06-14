@@ -3,17 +3,33 @@
 import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import { fetchCachedJson } from "@/lib/api/client-cache";
-import { Layers, Loader2, AlertCircle, User, Clock, ChevronRight } from "lucide-react";
-import type { JiraIssue, JiraSprint, TeamMember, DecompositionResult, SubTaskType } from "@/types";
+import {
+  AlertCircle,
+  AlertTriangle,
+  ChevronRight,
+  Clock,
+  Layers,
+  Loader2,
+  Sparkles,
+  Terminal,
+  UserCheck,
+} from "lucide-react";
+import type {
+  DecompositionResult,
+  JiraIssue,
+  JiraSprint,
+  SubTaskType,
+  TeamMember,
+} from "@/types";
 import { clsx } from "clsx";
 
 const TYPE_COLOR: Record<SubTaskType, string> = {
-  Frontend: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  Backend: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-  Database: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  Test: "bg-green-500/10 text-green-400 border-green-500/20",
-  DevOps: "bg-slate-500/10 text-slate-400 border-slate-600",
-  Design: "bg-pink-500/10 text-pink-400 border-pink-500/20",
+  Frontend: "bg-blue-50 text-blue-700 border-blue-200",
+  Backend: "bg-purple-50 text-purple-700 border-purple-200",
+  Database: "bg-amber-50 text-amber-800 border-amber-200",
+  Test: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  DevOps: "bg-slate-100 text-slate-700 border-slate-200",
+  Design: "bg-pink-50 text-pink-700 border-pink-200",
 };
 
 const IDEAL_MEMBER_CAPACITY_POINTS = 18;
@@ -39,7 +55,9 @@ export default function DecomposePage() {
         setTeamMembers(t.members ?? []);
         const allSprints = s.sprints ?? [];
         const active =
-          allSprints.find((sprint) => sprint.state === "active") ?? allSprints[allSprints.length - 1] ?? null;
+          allSprints.find((sprint) => sprint.state === "active") ??
+          allSprints[allSprints.length - 1] ??
+          null;
         setActiveSprint(active);
       })
       .catch((e) => setError(String(e)))
@@ -57,10 +75,7 @@ export default function DecomposePage() {
   const activeTeamMembers = (() => {
     if (!activeSprint) return teamMembers;
 
-    const activeMemberStats = new Map<
-      string,
-      { openPoints: number }
-    >();
+    const activeMemberStats = new Map<string, { openPoints: number }>();
 
     for (const issue of activeSprint.issues) {
       const assigneeId = issue.assignee?.accountId;
@@ -121,78 +136,280 @@ export default function DecomposePage() {
   const capacityPct = (m: TeamMember) =>
     m.capacity > 0 ? Math.round((m.currentLoad / m.capacity) * 100) : 0;
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
-        <div className="mb-8">
-          <div className="flex items-center gap-2 text-purple-400 text-sm mb-1 font-mono">
-            <Layers className="w-4 h-4" /> Task Decomposition
-          </div>
-          <h1 className="text-2xl font-bold text-slate-100">Görev Kırılımı & Akıllı Atama</h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Bir görev seç → AI saniyeler içinde alt görevlere böler ve takıma atar
-          </p>
-        </div>
+  const mostLoadedMember = activeTeamMembers[0];
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: Task list + team capacity */}
-          <div className="space-y-4">
-            <h2 className="font-semibold text-slate-200 text-sm">Görevler</h2>
+  return (
+    <div className="min-h-screen bg-[#F4F6FA] text-slate-800">
+      <Navbar />
+      <main className="w-full px-4 pb-10 pt-20 sm:px-6 lg:ml-72 lg:max-w-[calc(100%-18rem)] lg:px-8">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <section className="flex flex-col space-y-4">
+            <div className="flex flex-col space-y-1.5 text-left">
+              <span className="font-mono text-xs font-bold tracking-wide text-[#00509E]" lang="en">
+                TASKS LIST
+              </span>
+              <h1 className="text-xl font-bold text-slate-900">Görevler</h1>
+              <p className="text-sm text-slate-600">
+                Kırılımını incelemek veya otomatikleştirmek istediğiniz task'ı seçin.
+              </p>
+            </div>
+
             {loadingData ? (
-              <div className="flex items-center text-slate-500 text-sm gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" /> Yükleniyor…
+              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500">
+                <Loader2 className="h-4 w-4 animate-spin" /> Yükleniyor...
               </div>
             ) : (
-              <div className="space-y-2">
-                {backlog.map((issue) => (
-                  <button
-                    key={issue.key}
-                    onClick={() => decompose(issue)}
-                    className={clsx(
-                      "w-full text-left p-3 rounded-xl border transition-all flex items-start gap-2",
-                      selectedTask?.key === issue.key
-                        ? "border-purple-500/40 bg-purple-500/5"
-                        : "border-slate-800 bg-slate-900 hover:border-slate-700"
-                    )}
-                  >
-                    <span className="text-xs font-mono text-slate-500 shrink-0 mt-0.5">{issue.key}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-slate-200 truncate">{issue.summary}</p>
-                      <div className="flex gap-1 mt-1">
-                        {issue.components.map((c) => (
-                          <span key={c} className="text-xs bg-slate-800 text-slate-400 px-1 py-0.5 rounded">
-                            {c}
-                          </span>
-                        ))}
+              <div className="max-h-[640px] space-y-2.5 overflow-y-auto pr-2 scrollbar-thin">
+                {backlog.map((issue) => {
+                  const isActive = selectedTask?.key === issue.key;
+                  return (
+                    <button
+                      key={issue.key}
+                      onClick={() => decompose(issue)}
+                      className={clsx(
+                        "group flex w-full items-center justify-between rounded-xl border p-4 text-left shadow-sm transition-all duration-200",
+                        isActive
+                          ? "border-[#00509E] bg-blue-50/40"
+                          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
+                      )}
+                    >
+                      <div className="min-w-0 max-w-[80%]">
+                        <span className="font-mono text-[10px] font-bold tracking-wider text-[#00509E]">
+                          {issue.key}
+                        </span>
+                        <h2 className="truncate text-xs font-semibold text-slate-800">
+                          {issue.summary}
+                        </h2>
+                        {issue.components.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {issue.components.slice(0, 3).map((component) => (
+                              <span
+                                key={component}
+                                className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase text-slate-500"
+                              >
+                                {component}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-600 shrink-0 mt-0.5" />
-                  </button>
-                ))}
+                      <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
+                    </button>
+                  );
+                })}
               </div>
             )}
 
-            {/* Team Capacity */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-              <h3 className="text-sm font-semibold text-slate-200 mb-3">Ekip Kapasitesi</h3>
-              <p className="text-xs text-slate-500 mb-3">
-                Aktif sprintte gorevi olan kisiler listelenir. Degerler acik is SP / 18 ideal kapasitedir.
-              </p>
-              <div className="space-y-3">
-                {activeTeamMembers.map((m) => {
-                  const pct = capacityPct(m);
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm">
+              <span className="mb-1 block text-xs font-extrabold uppercase tracking-wide text-slate-700">
+                Kapasite Metrikleri
+              </span>
+              <div className="flex items-start gap-2.5 pt-1">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+                <p className="text-[11px] leading-relaxed text-slate-600">
+                  Aktif sprintte görevi olan kişiler listelenir. Değerler açık iş SP / 18 ideal
+                  kapasite mantığı ile Jira sprint tasklarından hesaplanır.
+                  {mostLoadedMember && (
+                    <>
+                      {" "}
+                      En yuksek acik yuk:{" "}
+                      <strong className="text-rose-600">
+                        {mostLoadedMember.name} ({mostLoadedMember.currentLoad} SP)
+                      </strong>
+                      .
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="flex flex-col space-y-6 lg:col-span-2">
+            <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm">
+              <div className="absolute right-0 top-0 -z-0 h-40 w-40 rounded-full bg-blue-500/5 blur-[50px]" />
+              <div className="relative flex flex-col gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <span className="text-xs font-extrabold tracking-wide text-[#00509E]">
+                    {selectedTask?.key ?? "Task seçilmedi"}
+                  </span>
+                  <h2 className="mt-1 text-xl font-bold text-slate-900">
+                    {selectedTask?.summary ?? "Görev Kırılımı & Akıllı Atama"}
+                  </h2>
+                  <p className="mt-1 truncate text-xs text-slate-500">
+                    {selectedTask?.description ??
+                      "Soldaki listeden bir task seçerek AI ile alt görev kırılımı oluşturun."}
+                  </p>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-3">
+                  <div className="flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-1.5">
+                    <span className="text-lg font-black text-[#00509E]">
+                      {result?.subtasks.length ?? 0}
+                    </span>
+                    <span className="text-[10px] font-extrabold uppercase text-slate-700">
+                      Alt Görev
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-1.5">
+                    <span className="text-lg font-black text-slate-800">
+                      {result?.totalEstimatedHours ?? 0}h
+                    </span>
+                    <span className="text-[10px] font-extrabold uppercase text-slate-700">
+                      Toplam
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <span className="max-w-md text-xs leading-relaxed text-slate-500">
+                  AI, task detaylarını ve ekip kapasitesini okuyarak mantıksal alt görevler,
+                  sorumlu önerisi ve risk listesi üretir.
+                </span>
+                <button
+                  onClick={() => selectedTask && decompose(selectedTask)}
+                  disabled={!selectedTask || loadingAI}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-blue-600 bg-[#00509E] px-5 py-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-[#003B75] disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  {loadingAI ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  <span>{loadingAI ? "AI Kırılım Üretiyor..." : "AI ile Kırılım Oluştur"}</span>
+                </button>
+              </div>
+            </div>
+
+            {loadingAI && (
+              <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white">
+                <Loader2 className="h-8 w-8 animate-spin text-[#00509E]" />
+                <p className="text-sm text-slate-500">AI alt görevleri oluşturuyor...</p>
+              </div>
+            )}
+
+            {!loadingAI && result && (
+              <>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {result.subtasks.map((subtask, index) => {
+                    const assignee = memberById(subtask.suggestedAssignee);
+                    return (
+                      <div
+                        key={`${subtask.title}-${index}`}
+                        className="group flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50/20"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span
+                              className={clsx(
+                                "rounded-full border px-2.5 py-0.5 text-[9px] font-bold uppercase",
+                                TYPE_COLOR[subtask.type]
+                              )}
+                            >
+                              {subtask.type}
+                            </span>
+                            <span className="flex items-center gap-1 font-mono text-[11px] font-bold text-slate-500">
+                              <Clock className="h-3 w-3 text-slate-400" />
+                              {subtask.estimatedHours} saat
+                            </span>
+                          </div>
+                          <h3 className="mt-3.5 text-sm font-bold leading-snug text-slate-800">
+                            {subtask.title}
+                          </h3>
+                          <p className="mt-2 min-h-12 text-[11px] leading-relaxed text-slate-500">
+                            {subtask.description}
+                          </p>
+                        </div>
+
+                        <div className="mt-5 flex items-center justify-between gap-2.5 border-t border-slate-100 pt-3">
+                          <span className="flex items-center gap-1 text-[10px] font-extrabold uppercase text-slate-700">
+                            <UserCheck className="h-3 w-3 text-slate-400" />
+                            Sorumlu
+                          </span>
+                          <span className="max-w-[160px] truncate rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700">
+                            {assignee?.name ?? "Atanmadi"}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm">
+                  <div className="mb-2 text-xs font-extrabold uppercase tracking-wide text-slate-700">
+                    Atama Gerekçesi
+                  </div>
+                  <p className="text-sm leading-relaxed text-slate-600">{result.assignmentRationale}</p>
+                </div>
+
+                {result.risks.length > 0 && (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-left shadow-sm">
+                    <div className="mb-2 flex items-center gap-1.5 text-xs font-bold text-amber-700">
+                      <AlertCircle className="h-3.5 w-3.5" /> Potansiyel Riskler
+                    </div>
+                    <ul className="space-y-1">
+                      {result.risks.map((risk, index) => (
+                        <li key={index} className="flex items-start gap-1.5 text-xs text-slate-600">
+                          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-amber-500" />
+                          {risk}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
+            )}
+
+            {!selectedTask && !loadingAI && (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center shadow-sm">
+                <Terminal className="mx-auto h-8 w-8 text-slate-400" />
+                <h3 className="mt-4 text-sm font-bold text-slate-800">Alt Görevler Henüz Üretilmedi</h3>
+                <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-500">
+                  Soldaki listeden bir task seçerek AI kırılım sürecini başlatın.
+                </p>
+              </div>
+            )}
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm">
+              <div className="mb-5 flex items-center justify-between border-b border-slate-100 pb-3.5">
+                <div>
+                  <h3 className="text-md font-bold text-slate-800">Ekip Kapasitesi</h3>
+                  <p className="text-[11px] leading-none text-slate-500">
+                    Aktif sprintteki acik SP yuku. Limit: 18 SP idealdir.
+                  </p>
+                </div>
+                <span className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-1 font-mono text-[9px] font-bold text-slate-600">
+                  {activeTeamMembers.length} Uye
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                {activeTeamMembers.map((member) => {
+                  const pct = capacityPct(member);
+                  const isOverloaded = member.currentLoad > member.capacity;
                   return (
-                    <div key={m.id}>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-slate-300">{m.name}</span>
-                        <span className={clsx("font-medium", pct >= 80 ? "text-red-400" : pct >= 60 ? "text-yellow-400" : "text-emerald-400")}>
-                          {m.currentLoad}/{m.capacity} pts
+                    <div key={member.id} className="flex flex-col space-y-1.5">
+                      <div className="flex items-center justify-between text-xs font-semibold">
+                        <span className="font-mono tracking-wide text-slate-700">{member.name}</span>
+                        <span
+                          className={clsx(
+                            "rounded-lg px-2 py-0.5 font-mono text-[10px] font-bold",
+                            isOverloaded
+                              ? "border border-rose-200 bg-rose-50 text-rose-700"
+                              : pct >= 80
+                                ? "border border-amber-200 bg-amber-50 text-amber-700"
+                                : "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                          )}
+                        >
+                          {member.currentLoad}/{member.capacity} pts
                         </span>
                       </div>
-                      <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-2.5 w-full overflow-hidden rounded-full border border-slate-200/80 bg-slate-100">
                         <div
-                          className={clsx("h-full rounded-full transition-all", pct >= 80 ? "bg-red-500" : pct >= 60 ? "bg-yellow-500" : "bg-emerald-500")}
+                          className={clsx(
+                            "h-full rounded-full transition-all",
+                            isOverloaded ? "bg-rose-500" : pct >= 80 ? "bg-amber-500" : "bg-[#00509E]"
+                          )}
                           style={{ width: `${Math.min(pct, 100)}%` }}
                         />
                       </div>
@@ -200,118 +417,17 @@ export default function DecomposePage() {
                   );
                 })}
                 {activeTeamMembers.length === 0 && (
-                  <div className="text-xs text-slate-500">Aktif sprintte atanmis kisi bulunamadi.</div>
+                  <div className="text-xs text-slate-600">Aktif sprintte atanmış kişi bulunamadı.</div>
                 )}
               </div>
             </div>
-          </div>
-
-          {/* Right: Decomposition Result */}
-          <div className="lg:col-span-2">
-            {!selectedTask && (
-              <div className="h-full flex items-center justify-center text-slate-600 text-sm border border-dashed border-slate-800 rounded-2xl min-h-64">
-                ← Soldan bir görev seçin
-              </div>
-            )}
-
-            {selectedTask && loadingAI && (
-              <div className="flex flex-col items-center justify-center h-64 gap-3 bg-slate-900 border border-slate-800 rounded-2xl">
-                <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
-                <p className="text-slate-400 text-sm">AI alt görevleri oluşturuyor…</p>
-              </div>
-            )}
-
-            {selectedTask && !loadingAI && result && (
-              <div className="space-y-4">
-                {/* Header */}
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="text-xs font-mono text-slate-500 mb-1">{selectedTask.key}</div>
-                      <h2 className="text-lg font-semibold text-slate-100">{selectedTask.summary}</h2>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-2xl font-bold text-purple-400">{result.subtasks.length}</div>
-                      <div className="text-xs text-slate-500">alt görev</div>
-                    </div>
-                  </div>
-                  <div className="flex gap-4 mt-3 text-sm">
-                    <div className="flex items-center gap-1.5 text-slate-400">
-                      <Clock className="w-3.5 h-3.5" />
-                      {result.totalEstimatedHours} saat toplam
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sub-tasks */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {result.subtasks.map((sub, i) => {
-                    const assignee = memberById(sub.suggestedAssignee);
-                    return (
-                      <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={clsx("text-xs px-2 py-0.5 rounded border", TYPE_COLOR[sub.type])}>
-                            {sub.type}
-                          </span>
-                          <span className="text-xs text-slate-500 ml-auto flex items-center gap-1">
-                            <Clock className="w-3 h-3" /> {sub.estimatedHours}h
-                          </span>
-                        </div>
-                        <h4 className="text-sm font-medium text-slate-200 mb-1">{sub.title}</h4>
-                        <p className="text-xs text-slate-500 mb-3 leading-relaxed">{sub.description}</p>
-                        <div className="flex items-center justify-between">
-                          <div className="flex gap-1 flex-wrap">
-                            {sub.skills.map((s) => (
-                              <span key={s} className="text-xs bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">
-                                {s}
-                              </span>
-                            ))}
-                          </div>
-                          {assignee && (
-                            <div className="flex items-center gap-1.5 text-xs text-slate-400 shrink-0 ml-2">
-                              <div className="w-5 h-5 rounded-full bg-purple-500/20 flex items-center justify-center">
-                                <User className="w-3 h-3 text-purple-400" />
-                              </div>
-                              {assignee.name.split(" ")[0]}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* AI Rationale */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                  <div className="text-xs text-slate-500 mb-2 font-medium">Atama Gerekçesi</div>
-                  <p className="text-sm text-slate-400 leading-relaxed">{result.assignmentRationale}</p>
-                </div>
-
-                {/* Risks */}
-                {result.risks.length > 0 && (
-                  <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4">
-                    <div className="flex items-center gap-1.5 text-amber-400 text-xs font-medium mb-2">
-                      <AlertCircle className="w-3.5 h-3.5" /> Potansiyel Riskler
-                    </div>
-                    <ul className="space-y-1">
-                      {result.risks.map((r, i) => (
-                        <li key={i} className="text-xs text-slate-400 flex items-start gap-1.5">
-                          <span className="w-1 h-1 rounded-full bg-amber-500 mt-1.5 shrink-0" />
-                          {r}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
 
             {error && (
-              <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-sm">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> {error}
+              <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /> {error}
               </div>
             )}
-          </div>
+          </section>
         </div>
       </main>
     </div>

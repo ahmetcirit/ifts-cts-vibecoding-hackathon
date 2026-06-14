@@ -66,8 +66,8 @@ function buildFallbackDecomposition(task: JiraIssue, teamMembers: TeamMember[]) 
       title: `${type}: ${task.summary}`,
       description:
         index === 0
-          ? `${task.key} gorevi icin ${type.toLowerCase()} kapsamindaki ana is parcasi.`
-          : `${task.key} gorevini destekleyen ${type.toLowerCase()} isi.`,
+          ? `${task.key} görevi için ${type.toLowerCase()} kapsamındaki ana iş parçası.`
+          : `${task.key} görevini destekleyen ${type.toLowerCase()} işi.`,
       type,
       estimatedHours,
       suggestedAssignee: assignee?.id ?? "",
@@ -79,10 +79,10 @@ function buildFallbackDecomposition(task: JiraIssue, teamMembers: TeamMember[]) 
     subtasks,
     totalEstimatedHours: subtasks.reduce((sum, subtask) => sum + subtask.estimatedHours, 0),
     assignmentRationale:
-      "AI ciktisi parse edilemedigi icin gorev componentleri ve ekip kapasitesine gore muhafazakar bir dagilim uygulandi.",
+      "AI çıktısı parse edilemediği için görev componentleri ve ekip kapasitesine göre muhafazakar bir dağılım uygulandı.",
     risks: task.description
       ? []
-      : ["Gorev aciklamasi eksik oldugu icin alt gorev kapsaminda belirsizlik bulunuyor."],
+      : ["Görev açıklaması eksik olduğu için alt görev kapsamında belirsizlik bulunuyor."],
   };
 }
 

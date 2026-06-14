@@ -1,108 +1,169 @@
 import Link from "next/link";
-import { Brain, BarChart3, Layers, Zap, ArrowRight } from "lucide-react";
+import Navbar from "@/components/Navbar";
+import {
+  ArrowRight,
+  BarChart3,
+  Brain,
+  Layers,
+  Sparkles,
+  Target,
+  UserCheck,
+} from "lucide-react";
 
 const features = [
   {
     href: "/planning",
     icon: Brain,
-    title: "Akilli Planlama",
-    subtitle: "Predictive Planning",
+    title: "Akıllı Sprint Planlama",
+    subtitle: "PREDICTIVE PLANNING",
     description:
-      "Backlog'dan task sec, takimin gecmis velocity'sine gore story point tahmini yap. Sprint kapasitesini AI ile optimize et.",
-    gradient: "from-blue-600 to-blue-800",
-    border: "hover:border-blue-500/40",
-    points: ["Jira backlog okuma", "AI story point tahmini", "Velocity analizi"],
+      "Backlog'dan taskları seçin, geçmiş velocity ve sprint verisine göre AI destekli story point tahmini alın.",
+    iconBg: "bg-blue-50 text-[#00509E] border border-blue-100",
+    gradient: "from-blue-50 via-blue-50/20 to-transparent",
+    bullets: ["Jira backlog okuma", "AI story point tahmini", "Velocity analizi"],
   },
   {
     href: "/decompose",
     icon: Layers,
-    title: "Gorev Kirilimi ve Atama",
-    subtitle: "Task Decomposition",
+    title: "Görev Kırılımı ve Atama",
+    subtitle: "TASK DECOMPOSITION",
     description:
-      "Bir task'i saniyeler icinde Frontend, Backend, DB ve Test alt gorevlerine bol. Yetenek matrisine gore akilli atama oner.",
-    gradient: "from-purple-600 to-purple-800",
-    border: "hover:border-purple-500/40",
-    points: ["Otomatik sub-task uretimi", "Kapasite bazli atama", "Risk tespiti"],
+      "Taskları Frontend, Backend, DB, Test gibi alt işlere bölün; ekip kapasitesine göre sorumlu önerisi alın.",
+    iconBg: "bg-amber-50 text-amber-700 border border-amber-100",
+    gradient: "from-amber-50 via-amber-50/10 to-transparent",
+    bullets: ["Otomatik sub-task üretimi", "Kapasite bazlı atama", "Risk tespiti"],
   },
   {
     href: "/dashboard",
     icon: BarChart3,
-    title: "Sprint Dashboard",
-    subtitle: "Sprint Review",
+    title: "Sprint Dashboard & Rapor",
+    subtitle: "SPRINT REVIEW",
     description:
-      "Planlanan ve gerceklesen metrikleri gorsellestir. AI ile sprint review raporu olustur. Saglik skoru hesapla.",
-    gradient: "from-emerald-600 to-emerald-800",
-    border: "hover:border-emerald-500/40",
-    points: ["Sprint health skoru", "Streaming AI raporu", "Carryover metrikleri"],
+      "Planlanan/gerçekleşen metrikleri izleyin, health skorunu hesaplayın ve AI sprint raporu üretin.",
+    iconBg: "bg-emerald-50 text-emerald-700 border border-emerald-100",
+    gradient: "from-emerald-50 via-emerald-50/10 to-transparent",
+    bullets: ["Sprint health skoru", "AI sprint raporu", "Carryover metrikleri"],
   },
 ];
 
 export default function Home() {
   return (
-    <main className="min-h-screen flex flex-col">
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-16">
-        <div className="max-w-5xl w-full">
-          <div className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-1.5 text-blue-400 text-sm mb-6">
-              <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse-slow" />
-              IFTS AI Hackathon 2026
-            </div>
+    <div className="min-h-screen bg-[#F4F6FA] text-slate-800">
+      <Navbar />
+      <main className="relative w-full overflow-hidden px-4 pb-10 pt-20 sm:px-6 lg:ml-72 lg:max-w-[calc(100%-18rem)] lg:px-8">
+        <div className="absolute left-1/4 top-14 -z-0 h-96 w-96 rounded-full bg-blue-500/10 blur-[90px]" />
+        <div className="absolute bottom-20 right-1/4 -z-0 h-96 w-96 rounded-full bg-amber-400/10 blur-[90px]" />
 
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
-              </div>
-              <h1 className="text-5xl font-bold bg-gradient-to-r from-slate-100 via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                CTS VibeCrafters Agile Manager
-              </h1>
+        <section className="relative py-6 sm:py-10">
+          <div className="relative mt-6 text-center">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute left-1/2 top-28 z-0 hidden -translate-x-1/2 select-none text-7xl font-light tracking-[-0.08em] text-slate-300/45 sm:block lg:text-8xl"
+            >
+              AGILE
             </div>
-
-            <p className="text-slate-400 text-lg max-w-2xl mx-auto leading-relaxed">
-              Sprint planlama ve raporlama is yukunu yapay zeka ile otomatiklestir.
-              Takimin tum enerjisini kod yazmaya ve deger uretmeye odaklar.
+            <div className="mx-auto mb-5 flex h-28 w-28 items-center justify-center">
+              <img src="/logo.png" alt="Turkcell AI Agile Manager" className="h-full w-full object-contain" />
+            </div>
+            <h1 className="relative text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+              <span className="text-[#002f66]">AI Agile Manager</span>
+            </h1>
+            <p className="mx-auto mt-4 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-base">
+              Sprint planlama ve raporlama süreçlerinizi AI ile otomatikleştirin
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {features.map(
-              ({ href, icon: Icon, title, subtitle, description, gradient, border, points }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`group relative bg-slate-900 border border-slate-800 ${border} rounded-2xl p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/30`}
+          <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-3">
+            {[
+              {
+                value: "Jira",
+                label: "Canlı backlog ve sprint verisi",
+                icon: Target,
+                iconColor: "text-blue-600",
+                iconBg: "bg-blue-50 border-blue-100",
+              },
+              {
+                value: "AI",
+                label: "Planlama ve kırılım desteği",
+                icon: Sparkles,
+                iconColor: "text-amber-600",
+                iconBg: "bg-amber-50 border-amber-100",
+              },
+              {
+                value: "Scrum",
+                label: "Rapor, health ve kapasite takibi",
+                icon: UserCheck,
+                iconColor: "text-emerald-600",
+                iconBg: "bg-emerald-50 border-emerald-100",
+              },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.value}
+                  className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
                 >
                   <div
-                    className={`w-11 h-11 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center mb-4 shadow-lg`}
+                    className={`flex h-11 w-11 items-center justify-center rounded-xl border ${item.iconBg} ${item.iconColor}`}
                   >
-                    <Icon className="w-5 h-5 text-white" />
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xl font-bold leading-none text-slate-900">{item.value}</div>
+                    <div className="mt-1 text-xs text-slate-500">{item.label}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
+            {features.map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <Link
+                  key={feature.href}
+                  href={feature.href}
+                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+                >
+                  <div
+                    className={`absolute inset-0 -z-0 bg-gradient-to-b ${feature.gradient} opacity-20 transition-opacity duration-300 group-hover:opacity-100`}
+                  />
+                  <div className="relative flex items-center justify-between">
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${feature.iconBg}`}>
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-0.5 font-mono text-[9px] font-bold tracking-wider text-[#00509E]" lang="en">
+                      {feature.subtitle}
+                    </span>
                   </div>
 
-                  <div className="text-xs font-mono text-slate-500 mb-1">{subtitle}</div>
-                  <h2 className="text-lg font-semibold text-slate-100 mb-2">{title}</h2>
-                  <p className="text-slate-400 text-sm leading-relaxed mb-4">{description}</p>
+                  <h2 className="relative mt-5 text-left text-lg font-bold tracking-tight text-slate-800">
+                    {feature.title}
+                  </h2>
+                  <p className="relative mt-2 min-h-[72px] text-left text-sm leading-relaxed text-slate-500">
+                    {feature.description}
+                  </p>
 
-                  <ul className="space-y-1 mb-4">
-                    {points.map((point) => (
-                      <li key={point} className="flex items-center gap-1.5 text-xs text-slate-500">
-                        <span className="w-1 h-1 rounded-full bg-slate-600" />
-                        {point}
+                  <ul className="relative mt-5 space-y-2.5 border-t border-slate-100 pt-5 text-left">
+                    {feature.bullets.map((bullet) => (
+                      <li key={bullet} className="flex items-center text-xs text-slate-600">
+                        <span className="mr-2.5 h-1.5 w-1.5 rounded-full bg-[#00509E] transition-colors group-hover:bg-[#FFCB05]" />
+                        {bullet}
                       </li>
                     ))}
                   </ul>
 
-                  <div className="flex items-center gap-1 text-sm font-medium text-blue-400 group-hover:gap-2 transition-all">
-                    Basla <ArrowRight className="w-3.5 h-3.5" />
+                  <div className="relative mt-6 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold text-slate-700 transition-all group-hover:border-transparent group-hover:bg-[#00509E] group-hover:text-white">
+                    <span>Keşfet ve Başla</span>
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </div>
                 </Link>
-              )
-            )}
+              );
+            })}
           </div>
-        </div>
-      </div>
-
-      <footer className="border-t border-slate-800 py-4 text-center text-xs text-slate-600">
-        IFTS AI Hackathon 2026 · Powered by Gemini 2.5 Pro + Jira REST API
-      </footer>
-    </main>
+        </section>
+      </main>
+    </div>
   );
 }
